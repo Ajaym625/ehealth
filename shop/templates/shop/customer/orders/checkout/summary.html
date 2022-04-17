@@ -1,0 +1,156 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+
+            <tr>
+                <th scope="col">Prodotto</th>
+                <th scope="col">Confezione</th>
+                <th scope="col">Quantità</th>
+                <th scope="col">Prezzo/unità</th>
+            </tr>
+            </thead>
+            <tbody >
+            {% for package_cart in packages_carts %}
+                <tr>
+                    <th scope="row">{{ package_cart.package.product.name }}</th>
+                    <td>{{ package_cart.package }}</td>
+                    <td>{{ package_cart.requested_quantity }}</td>
+                    <td>{{ package_cart.package.price }} €</td>
+                </tr>
+            {% endfor %}
+            <tr>
+                <th scope="row" colspan="3">Spedizione</th>
+                <td><p id="shipment_cost" style="display: inline">{{ couriers.0.standard_cost }}</p> €</td>
+
+            </tr>
+            <tr>
+                <th scope="row" colspan="3">Totale</th>
+                <td><p id="total_price" style="display: inline">{{ total_price }}</p> €</td>
+
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <form action="{% url 'orders.checkout.pay' %}" method="post">
+        <div class="row">
+
+            {% csrf_token %}
+            <div class="col-12">
+                <label for="shipping_address_floating">Indirizzo di spedizione</label>
+                <select name="shipping_address" id="shipping_address_floating" class="form-select mb-3 btn-outline-primary bg-white">
+
+                    {% for shipping_address in shipping_addresses %}
+                        <option value="{{ shipping_address.id }}">{{ shipping_address }}</option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+            <div class="col-12">
+                <label for="billing_address_floating">Indirizzo di fatturazione</label>
+                <select name="billing_address" id="billing_address_floating" class="form-select mb-3 btn-outline-primary bg-white">
+
+                    {% for billing_address in billing_addresses %}
+                        <option value="{{ billing_address.id }}">{{ billing_address }}</option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+            <div class="col-12">
+                <label for="billing_address_floating">Spedizione</label>
+                <select name="courier" id="courier_floating" class="form-select mb-3 btn-outline-primary bg-white">
+
+                    {% for courier in couriers %}
+                        <option data-cost="{{ courier.standard_cost }}" value="{{ courier.id }}">{{ courier.name }}</option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+        </div>
+        <div class="row">
+            <div class="col-12">
+
+                    <label for="coupon">Coupon</label>
+                    <input name="coupon" id="coupon" type="text" class="form-control mb-3 border-primary" placeholder="Coupon">
+                    <div class="coupon_result"></div>
+
+            </div>
+            <div class="col-12">
+                {% if messages %}
+                    <div>
+                        {% for message in messages %}
+                            <h6><span class="cart_badge badge bg-primary text-white">{{ message }}</span></h6><br>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <button type="submit" class="btn container-fluid btn-primary">
+            Paga e completa l'ordine
+        </button>
+    </form>
+
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        $(document).ready(function () {
+            $("#courier_floating").change(function () {
+                let standard_courier_cost = parseFloat($(this).find(":selected").data("cost"));
+                let totalPriceObject = $("#total_price");
+                let shipmentCostObject = $("#shipment_cost");
+
+                let oldTotalPrice = parseFloat(totalPriceObject.text());
+                let oldShipmentCost = parseFloat(shipmentCostObject.text());
+                shipmentCostObject.text(standard_courier_cost);
+                totalPriceObject.text(oldTotalPrice + standard_courier_cost - oldShipmentCost);
+
+            });
+
+            $("#coupon").blur(function (){
+
+                let formData = {"csrfmiddlewaretoken": "{{ csrf_token }}"};
+                let formDataSerialized = $(this).serializeArray();
+
+                formDataSerialized.forEach(function (element){
+                    let name = element["name"];
+                    formData[name] = element["value"];
+                })
+
+                $.ajax({
+
+                    type: 'POST',
+
+                    url: '{% url 'chats.coupons.check' %}',
+
+                    data: formData,
+
+                    success: function (data) {
+                        let discountPercentage = data.discount_percentage;
+                        let shipmentCostObject = $("#shipment_cost");
+                        let totalPriceObject = $("#total_price");
+                        let discountedPrice = parseFloat(totalPriceObject.text()) -
+                            ((parseFloat(totalPriceObject.text()) - parseFloat(shipmentCostObject.text())) *data.discount_percentage/100);
+                        totalPriceObject.text(discountedPrice);
+                        if (discountPercentage == 0)
+                            $(".coupon_result").text("Questo coupon non è utilizzabile!");
+                        else
+                            $(".coupon_result").text("Applicato sconto del " + parseFloat(discountPercentage) + '%');
+                    }.bind(this),
+
+                    error: function (response) {
+
+                    }
+
+                });
+            });
+        })
+    </script>
+{% endblock %}

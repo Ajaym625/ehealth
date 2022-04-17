@@ -1,0 +1,12 @@
+{% extends 'master.html' %}
+{% block content %}
+    <div class="col-7 d-flex container-fluid justify-content-center">
+        <form method="post" action="" class="">
+            {% csrf_token %}
+            {{ form.as_p}}
+            <button type="submit" class="btn mb-3 container-fluid btn-primary">
+                Aggiungi pacchetto
+            </button>
+        </form>
+    </div>
+{% endblock %}

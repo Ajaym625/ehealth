@@ -1,0 +1,31 @@
+<table class="table table-bordered">
+    <thead>
+    {% if header_row %}
+        <tr>
+            <th scope="col" colspan="5">{{ header_row }}</th>
+        </tr>
+    {% endif %}
+    <tr>
+        <th scope="col" >Ordine #</th>
+        <th scope="col" >Cliente</th>
+        <th scope="col" >Data di acquisto</th>
+        <th scope="col" >Prezzo totale</th>
+        <th scope="col" >Stato</th>
+    </tr>
+    </thead>
+    <tbody >
+    {% for order in orders %}
+        <tr>
+            <th scope="row">
+                <a href="{% url 'administration.orders.show' order.id %}">
+                    {{ order.id }}
+                </a>
+            </th>
+            <td>{{ order.customer.user.username }}</td>
+            <td>{{ order.date| date:"j/n/Y G:i" }}</td>
+            <td>{{ order.total_price }} €</td>
+            <td>{{ order.status.name }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>

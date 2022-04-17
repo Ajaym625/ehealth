@@ -1,0 +1,197 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th scope="col">Prodotto</th>
+                <th scope="col">Confezione</th>
+                <th scope="col">Quantità</th>
+                <th scope="col">Prezzo/unità</th>
+                <th scope="col">Di cui IVA</th>
+                <th scope="col">Guadagno sponsorizzazione</th>
+
+            </tr>
+            </thead>
+            <tbody>
+            {% for package_order in packages_order %}
+                <tr>
+                    <td>{{ package_order.package.product }}</td>
+                    <td>{{ package_order.package }}</td>
+                    <td>{{  package_order.requested_quantity }}</td>
+                    <td>{{ package_order.price }} €</td>
+                    <td>{{ package_order.vat_price }} € ({{ package_order.vat_percentage }} %)</td>
+                    <td>{{ package_order.sponsorship_cost }} €</td>
+                </tr>
+            {% endfor %}
+            <tr>
+                <th scope="row" colspan="3">Spedizione</th>
+                <td colspan="3">{{ order.shipment.get.cost }} €</td>
+            </tr>
+            <tr>
+                <th scope="row" colspan="3">Totale</th>
+                <td>{{ order.total_price }} €</td>
+                <td>{{ order.total_vat_price }} €</td>
+                <td>{{ total_sponsorship_cost }} €</td>
+            </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+
+            <tr>
+                <th scope="col">Indirizzo di fatturazione</th>
+                <th scope="col">Indirizzo di spedizione</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>{{ shipping_address.raw_address }}</td>
+                <td>{{ billing_address.raw_address }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th scope="col">Stato</th>
+                <th scope="col">Corriere</th>
+                <th scope="col">Codice di tracking</th>
+                {% ifnotequal shipping_address.further_info None %}
+                    <th scope="col">Info per il corriere</th>
+                {% endifnotequal %}
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>
+                    <select name="status" id="status" class="form-select btn-outline-primary bg-white" disabled>
+                        {% for status in statuses %}
+                            <option value="{{ status.id }}" {% ifequal status.id order.status.id %} selected {% endifequal %}>
+                                {{ status.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>{{ order.shipment.get.courier.name}}</td>
+                <td>
+                    <input type="text"
+                           name="tracking_code"
+                           id="tracking_code"
+                           value="{% ifnotequal order.shipment.get.tracking_code None %}{{ order.shipment.get.tracking_code }}{% endifnotequal %}"
+                           data-shipment_url="{% url 'seller.orders.shipments.edit' order.id order.shipment.get.id  %}"
+                           class="form-control border-primary bg-white"
+                           placeholder="Codice di tracking"
+                            disabled >
+                </td>
+                {% ifnotequal shipping_address.further_info None %}
+                    <td>{{ shipping_address.further_info }}</td>
+                {% endifnotequal %}
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    {% include 'includes/toasts/toast.html' with id='update_order_success' status='Successo!' message='' icon_classes='fas fa-check' header_classes='text-success' %}
+    {% include 'includes/toasts/toast.html' with id='update_order_error' status='Errore!' message='' icon_classes='fas fa-times' header_classes='text-danger' %}
+
+{% endblock %}
+
+{% block scripts %}
+
+    <script>
+        $(document).ready(function (){
+            $("#status").change(function (){
+
+                let formData = {"csrfmiddlewaretoken": "{{ csrf_token }}"};
+                let formDataSerialized = $(this).serializeArray();
+
+                formDataSerialized.forEach(function (element){
+                    let name = element["name"];
+                    formData[name] = element["value"];
+                })
+
+                $.ajax({
+
+                    type: 'POST',
+
+                    url: '{% url 'seller.orders.edit' 0 %}'.replace('0','{{ order.id }}'),
+
+                    data: formData,
+
+                    success: function (data) {
+                        let successToast = $("#update_order_success");
+                        let toast = new bootstrap.Toast(successToast)
+                        toast.show()
+                        successToast.children(".toast-body").text(data["message"]);
+
+                    }.bind(this),
+
+                    error: function (response) {
+                        let responseJson = response.responseJSON;
+                        console.log(responseJson);
+                        if(responseJson.hasOwnProperty('redirect'))
+                            window.location.href = responseJson["redirect"];
+                        else {
+                            let errorToast = $("#add_to_cart_error")
+                            let toast = new bootstrap.Toast(errorToast)
+                            toast.show()
+                            errorToast.children(".toast-body").text(responseJson["message"]);
+                        }
+                    }
+
+                });
+            });
+
+            $("#tracking_code").blur(function () {
+               let formData = {"csrfmiddlewaretoken": "{{ csrf_token }}"};
+                let formDataSerialized = $(this).serializeArray();
+
+                formDataSerialized.forEach(function (element){
+                    let name = element["name"];
+                    formData[name] = element["value"];
+                })
+
+                console.log(formData);
+                $.ajax({
+
+                    type: 'POST',
+
+                    url: $(this).data("shipment_url"),
+
+                    data: formData,
+
+                    success: function (data) {
+                        let successToast = $("#update_order_success");
+                        let toast = new bootstrap.Toast(successToast)
+                        toast.show()
+                        successToast.children(".toast-body").text(data["message"]);
+
+                    }.bind(this),
+
+                    error: function (response) {
+                        let responseJson = response.responseJSON;
+                        console.log(responseJson);
+                        if(responseJson.hasOwnProperty('redirect'))
+                            window.location.href = responseJson["redirect"];
+                        else {
+                            let errorToast = $("#add_to_cart_error")
+                            let toast = new bootstrap.Toast(errorToast)
+                            toast.show()
+                            errorToast.children(".toast-body").text(responseJson["message"]);
+                        }
+                    }
+
+                });
+            });
+        });
+    </script>
+
+{% endblock %}

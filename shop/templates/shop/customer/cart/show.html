@@ -1,0 +1,469 @@
+{% extends 'master.html' %}
+{% load static %}
+
+{% block content %}
+    {% if packages is not None %}
+        <section class="section-padding mt-5">
+            <div class="container">
+                <div class="row justify-content-between">
+                    <div class="col-md-12">
+                        <div class="cart_product">
+                            <div class="cart_product_heading">
+                                <div class="row align-items-center">
+                                    <div class="col-sm-6 text-lg-left">
+                                        <h4>Carrello
+                                            <span>( {{ total_packages }} prodott{% if total_packages <= 1  %}o{% else %}i {% endif %} )</span>
+                                        </h4>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            {% for packagesRow in packages %}
+                                {% for package in packagesRow %}
+                                    {% include 'shop/includes/cartProduct.html' %}
+                                {% endfor %}
+                            {% endfor %}
+
+                        </div><br>
+
+                        {% if prescription_needed %}
+
+                            <div class="row">
+                                <table class="table table-bordered">
+                                    <thead>
+                                    <tr>
+                                        <th scope="col">Id</th>
+                                        <th scope="col">NRE</th>
+                                        <th scope="col">Medicine</th>
+                                        {#                                        <th scope="col">Paziente</th>#}
+                                        <th scope="col">Prescritta da</th>
+                                        {#                                        <th scope="col">Farmacia</th>#}
+                                        <th scope="col">Emessa il</th>
+                                        {#                                        <th scope="col">Azione</th>#}
+                                        {#                                        <th scope="col">Destinazione</th>#}
+                                        {#                                        <th scope="col">Destinazione</th>#}
+                                        <th scope="col">Valida</th>
+                                        <th scope="col">Approva ricetta</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody class="prescriptions">
+                                    </tbody>
+                                </table>
+                            </div>
+
+
+                        {% endif %}
+                        <div class="mt-3">
+                            <form id="checkout_form" method="get" action="{% url 'orders.checkout.pay'  %}">
+                                {% csrf_token %}
+
+                                <button id="checkout_button" class="btn btn-primary btn-rounded btn-full btn-large" {% if prescription_needed %}disabled{% endif %}>
+                                    Checkout
+                                    <i class="ti-arrow-right"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+
+
+
+    {% else %}
+        {% include 'shop/includes/messages/warning.html' with message='Il tuo carrello è vuoto!' %}
+
+    {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script type="text/javascript" src="{% static 'assets/js/safePrescription/contract-data/nft-contranct_info.js' %}"></script>
+
+    <script>
+
+        $(document).ready(function () {
+
+            $(".update_package_quantity_in_cart").off().on('change', function (event) {
+
+                event.preventDefault();
+
+                let package_id = $(this).data("package_id");
+
+
+                let formDataSerialized = $(this).serializeArray();
+
+                let formData = {
+                    "csrfmiddlewaretoken": $("[name='csrf_token']").attr("content"),
+                };
+
+                formDataSerialized.forEach(function (element){
+                    let name = element["name"];
+
+                    formData[name] = element["value"];
+                });
+
+                console.log(formData);
+                $.ajax({
+
+                    type: 'POST',
+
+                    url: '{% url 'cart.package.edit' 0  %}'.replace("0",package_id),
+
+                    data: formData,
+
+                    success: function (data) {
+
+                        alert(data.message);
+
+
+                    },
+
+                    error: function (response) {
+                        let data = response.responseJSON;
+                        alert(data.error);
+                        if(data.hasOwnProperty('old_quantity'))
+                            $('#requested_quantity_floating',this).val(data.old_quantity);
+                        else
+                            window.location.href = {% url 'cart.show' %};
+
+
+                    }.bind(this)
+
+                });
+            });
+
+
+
+
+        });
+
+    </script>
+
+    <script>
+        //Load blockchain connection
+        var NFTContract;
+        var userAccount;
+        var count = 0;
+        async function startApp() {
+            NFTContract = new web3.eth.Contract(abi_contract, address_contract);
+            var accounts = await web3.eth.getAccounts();
+            readMyPresciption();
+            readHistoryPresciptions();
+
+        }
+
+        window.addEventListener('load', async () => {
+            // Modern dapp browsers...
+            console.log("Start");
+            if (window.ethereum) {
+                window.web3 = new Web3(ethereum);
+                try {
+                    await ethereum.enable();
+                    var accounts = await web3.eth.getAccounts();
+                    var option = {from: accounts[0]};
+                    userAccount = accounts[0];
+                    console.log(userAccount);
+                    userAccountCheck = false;
+                    let account = '';
+                    {% if request.user.customer %}
+                        account = '{{ request.user.customer.blockchain_address }}';
+                        userAccountCheck = account === userAccount;
+                        if(userAccountCheck)
+                            startApp();
+                        else
+                            alert("Account errato, cambiare account su metamask!");
+                    {% endif %}
+
+
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+            // Legacy dapp browsers...
+            else if (window.web3) {
+                window.web3 = new Web3(web3.currentProvider);
+                startApp()
+                // Acccounts always exposed
+            }
+            // Non-dapp browsers...
+            else {
+                console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+            }
+        })
+
+        function readMyPresciption() {
+            NFTContract.methods.getOwnerToken().call({from: userAccount}).then(value => {
+
+                if (value.length > 0) {
+                    $('#no-pre-pat').hide();
+
+                    for (var x of value) {
+                        NFTContract.methods.readPrescriptionData(x).call({from: userAccount}).then(presc => {
+                            console.log(presc)
+                            {#var options = {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'};#}
+                            var optionsWithHours = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: "numeric", minute: "numeric"};
+
+                            var d = new Date(+presc.releaseOn * 1000);
+                            var data = d.toLocaleDateString("it-IT", optionsWithHours);
+                            var i = x;
+
+                            var expiry = new Date();
+                            expiry.setDate(expiry.getDate() + 30);
+                            var isValid = expiry >= d;
+                            var v = isValid ? "Valida" : "Scaduta";
+                            let disabled = !isValid ? " disabled" : "";
+                            $('.prescriptions').append(
+                                '                <tr>' +
+                                '                    <td>' + presc.token + '</td>' +
+                                '                    <td>' + presc.nre + '</td>' +
+                                '                    <td>' + presc.farmaci + '</td>' +
+                                {#'                    <td>' + presc.patient + '</td>' +#}
+                                '                    <td>' + presc.doctor + '</td>' +
+                                '                    <td>' + data + '</td>' +
+                                '                    <td>' + v + '</td>' +
+                                '<td><form method="post" data-products="' + presc.farmaci + '" class="check_prescription" data-token="' + presc.token + '"><button type="submit" class="check_prescription_button btn mb-3 container-fluid btn-primary"' + disabled +'>Approva ricetta</button></form>' +'</td>' +
+                                '</tr>'
+                            );
+
+                            $(".check_prescription").submit(function (event) {
+                                event.preventDefault();
+                                let productsWithPrescriptionsNames = $(this).data('products');
+
+
+                                $.ajax({
+
+                                    type: 'POST',
+
+                                    url: '{% url 'cart.prescriptions.check' %}',
+
+                                    data: {
+                                        "productsWithPrescriptionsNames": productsWithPrescriptionsNames,
+                                        "csrfmiddlewaretoken": $("[name='csrf_token']").attr("content"),
+                                    },
+
+                                    success: function (data) {
+                                        let prescriptionApproved = data.message;
+
+                                        if(prescriptionApproved){
+                                            $(".check_prescription_button").attr("disabled",true);
+                                            $(this).children().eq(0).html("Ricetta approvata");
+                                            $("#checkout_button").attr("disabled", false);
+                                            let prescriptionId = $(this).data("token");
+                                            window.localStorage.setItem('prescriptionId', prescriptionId);
+                                            window.localStorage.setItem('pharmacy_address', $(".needs_prescription").eq(0).data('pharmacy_address'));
+                                        }
+                                        else {
+                                            if(count === 0)
+                                                alert("Ricetta non approvata, alcuni farmaci non corrispondono a quelli richiesti!");
+                                            count ++;
+                                        }
+
+                                    }.bind(this),
+
+                                    error: function (response) {
+                                        let data = response.responseJSON;
+                                        alert(data.error);
+                                        if(data.hasOwnProperty('old_quantity'))
+                                            $('#requested_quantity_floating',this).val(data.old_quantity);
+                                        else
+                                            window.location.href = {% url 'cart.show' %};
+
+
+                                    }.bind(this)
+
+                                });
+
+
+                            });
+
+
+
+                        }, reason => {
+                            alert("ERROR: non è stato possibile effettuare l'azione richiesta");
+                            console.log(reason)
+                        });
+                    }
+                }
+            }, reason => {
+                console.log(reason)
+            });
+        }
+
+        function trasferisciAllaFarmacia() {
+            var indirizzo = $('#pharmacyAddress').val();
+            var tokenId = $('#nreToPharmacy').val();
+
+            $('#modalPat').modal('show');
+            $('#append-stuff-pat').empty();
+
+            console.log(indirizzo);
+            console.log(tokenId);
+            console.log(userAccount);
+
+            return NFTContract.methods.transferToPharmacy(indirizzo, tokenId).send({from: userAccount})
+                .on("transactionHash", function (hash) {
+                    console.log(hash);
+                })
+                .on("receipt", function (receipt) {
+                    $('#append-stuff-pat').append("<p style=\"color: green;\"> Transazione eseguita</p>");
+                    sleep(3000).then(() => {
+                        $('#pharmacyAddress').val("");
+                        $('#nreToPharmacy').val("");
+                        $('#modalPat').modal("hide");
+                    });
+
+
+                })
+                .on("error", function (error) {
+                    // Do something to alert the user their transaction has failed
+                    $('#append-stuff-pat').append("<label style=\"color: red;\"> Errore: controllare la console per leggere l'errore</label>");
+                    sleep(5000).then(() => {
+                        $('#modalPat').modal("hide");
+                    });
+                    console.log("ERRORE");
+                    console.log(error);
+                });
+        }
+
+        function trasferisciAlDottore() {
+            var tokenId = $('#tokenIdToDoctor').val();
+            $('#modalPat').modal('show');
+            $('#append-stuff-pat').empty();
+
+
+            return NFTContract.methods.trasferToDoctorFromPatient(tokenId).send({from: userAccount})
+                .on("transactionHash", function (hash) {
+                    console.log(hash)
+                })
+                .on("receipt", function (receipt) {
+                    $('#append-stuff-pat').append("<p style=\"color: green;\"> Transazione eseguita con successo</p>");
+                    sleep(3000).then(() => {
+                        $('#tokenIdToDoctortokenIdBurn').val("");
+                        $('#modalPat').modal('hide');
+                    })
+
+                })
+                .on("error", function (error) {
+                    // Do something to alert the user their transaction has failed
+                    $('#append-stuff-pat').append("<label style=\"color: red;\"> Attenzione! controllare la console per leggere l'errore!</label>");
+                    sleep(5000).then(() => {
+                        $('#modalPat').modal('hide');
+                    });
+                    console.log("ERRORE");
+                    console.log(error);
+
+                });
+        }
+
+
+        function burnPrescription() {
+            var tokenId = $('#tokenIdBurn').val();
+            $('#modalPat').modal('show');
+            $('#append-stuff-pat').empty();
+
+            console.log(tokenId);
+            return NFTContract.methods.Burn(tokenId).send({from: userAccount})
+                .on("transactionHash", function (hash) {
+                    console.log(hash);
+                })
+                .on("receipt", function (receipt) {
+                    $('#append-stuff-pat').append("<br><p style=\"color: green;\"> Transazione eseguita</p>");
+                    sleep(3000).then(() => {
+                        $('#modalPat').modal('hide');
+                        $('#tokenIdBurn').val("");
+                    });
+
+
+                })
+                .on("error", function (error) {
+                    // Do something to alert the user their transaction has failed
+                    $('#append-stuff-pat').append("<label style=\"color: red;\"> Errore: controllare la console per leggere l'errore</label>");
+                    sleep(5000).then(() => {
+                        $('#modalPat').modal('hide');
+                    });
+                    console.log("ERRORE");
+                    console.log(error);
+
+
+                });
+
+        }
+
+        function readHistoryPresciptions() {
+            NFTContract.methods.takeHistory(userAccount).call({from: userAccount}).then(presc => {
+                if (presc.length > 0) {
+
+                    for (var i in presc) {
+
+                        const ACTION = {
+                            0: 'trasferita',
+                            1: 'bruciata',
+                            2: 'creata',
+                        }
+                        const MOVED_TO = {
+                            0: 'dottore',
+                            1: 'paziente',
+                            2: 'farmacia',
+                            3: 'SSN',
+                        }
+
+                        {#var options = {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'};#}
+                        var optionsWithHours = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: "numeric", minute: "numeric"};
+
+                        var d = new Date(+presc[i].releaseOn * 1000);
+                        var data = d.toLocaleDateString("it-IT", optionsWithHours);
+
+                        var expiry = new Date();
+                        expiry.setDate(expiry.getDate() + 30);
+                        var isValid = expiry >= d;
+                        var v = isValid ? "Valida" : "Scaduta"
+
+
+                        {#var optionsWithHours = {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: "numeric", minute: "numeric"};#}
+                        var trDate = new Date(+presc[i].transactionTimestamp * 1000);
+                        var transactionTimestamp = trDate.toLocaleDateString("it-IT", optionsWithHours);
+
+                        $('.prescriptions_history').append(
+                            '                <tr>' +
+                            '                    <td>' + presc[i].token + '</td>' +
+                            '                    <td>' + presc[i].nre + '</td>' +
+                            '                    <td>' + presc[i].farmaci + '</td>' +
+                            {#'                    <td>' + presc[i].patient + '</td>' +#}
+                            {#'                    <td>' + presc[i].doctor + '</td>' +#}
+                            {#'                    <td>' + presc[i].pharmacy + '</td>' +#}
+                            '                    <td>' + data + '</td>' +
+                            {#'                    <td>' + v + '</td>' +#}
+                            {#'                    <td>' + ACTION[presc[i].action] + '</td>' +#}
+                            {#'                    <td>' + MOVED_TO[presc[i].movedTo] + '</td>' +#}
+                            {#'                    <td>' + transactionTimestamp + '</td>' +#}
+                            '<td>' +
+                            '<form method="post" data-products="' + presc[i].farmaci + '"><button type="submit" class="check_prescription_button btn mb-3 container-fluid btn-primary">Approva ricetta</button></form>' +'</td>' +
+
+                            '</tr>'
+
+                        );
+                    }
+
+                }
+            }, reason => {
+                alert("ERROR: non è stato possibile effettuare l'azione richiesta");
+                console.log(reason)
+            });
+        }
+
+        function sleep(ms) {
+            return new Promise(
+                resolve => setTimeout(resolve, ms)
+            );
+        }
+
+    </script>
+
+{% endblock %}
+

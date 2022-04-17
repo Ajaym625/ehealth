@@ -1,0 +1,9 @@
+<div id="messages_chat_{{ chat.id }}"  class="msg_history" style="display:{{ display }}">
+    {% for message in chat.messages.all %}
+        {% ifnotequal chat.sender_id message.author_id %}
+            {% include 'chat/includes/sentMessage.html' with message=message %}
+        {% else %}
+            {% include 'chat/includes/receivedMessage.html' with message=message %}
+        {% endifnotequal %}
+    {% endfor %}
+</div>

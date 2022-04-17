@@ -1,0 +1,14 @@
+<div id="preview_chat_{{ chat.id }}" class="chat_list" style="cursor: pointer">
+    <div class="chat_people">
+        <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>
+        <div class="chat_ib">
+            <h5>{% ifequal request.user.id chat.sender.id %}
+                    {{ chat.receiver.username }}
+                {% else %}
+                    {{ chat.sender.username }}
+            {% endifequal %}
+                [{{ chat.package.product.name }} - {{ chat.package }}]<span class="chat_date">{{ chat.messages.last.date }}</span></h5>
+            <p class="last_message">{{ chat.messages.last.text }}</p>
+        </div>
+    </div>
+</div>

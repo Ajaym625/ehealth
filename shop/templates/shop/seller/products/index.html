@@ -1,0 +1,26 @@
+
+{% extends 'master.html' %}
+
+
+{% block content %}
+
+     <div class="row justify-content-between">
+        <div class="col-md-12 order-md-2">
+            <div class="row">
+                {% if products is not None %}
+                    {% for product in products %}
+
+                        {% include 'shop/includes/product.html' %}
+
+                    {% endfor %}
+                {% else %}
+
+                    {% include 'shop/includes/messages/warning.html' with message='Nessun prodotto disponibile!' %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
+

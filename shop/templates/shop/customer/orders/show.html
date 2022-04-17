@@ -1,0 +1,172 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+
+            <tr>
+                <th scope="col">Prodotto</th>
+                <th scope="col">Confezione</th>
+                <th scope="col">Quantità</th>
+                <th scope="col">Prezzo/unità</th>
+                <th scope="col">Di cui IVA</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for package_order in packages_order %}
+                <tr>
+                    <td>{{ package_order.package.product }}</td>
+                    <td>{{ package_order.package }}</td>
+                    <td>{{  package_order.requested_quantity }}</td>
+                    <td>{{ package_order.price }} €</td>
+                    <td>{{ package_order.vat_price }} € ({{ package_order.vat_percentage }} %)</td>
+                </tr>
+            {% endfor %}
+            <tr>
+                <th scope="row" colspan="3">Spedizione</th>
+                <td colspan="2">{{ order.shipment.get.cost }} €</td>
+            </tr>
+            <tr>
+                <th scope="row" colspan="3">Totale
+                    {% if packages_order.0.is_discounted %}
+                        ({{ packages_order.0.coupon }} sconto applicato del {{ packages_order.0.discount_percentage }}%)
+                    {% endif %}
+                </th>
+                <td>{{ order.total_price }} €</td>
+                <td>{{ order.total_vat_price }} €</td>
+            </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+
+            <tr>
+                <th scope="col">Indirizzo di fatturazione</th>
+                <th scope="col">Indirizzo di spedizione</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>{{ shipping_address.raw_address }}</td>
+                <td>{{ billing_address.raw_address }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th scope="col">Venditore</th>
+                <th scope="col">Stato</th>
+                <th scope="col">Corriere</th>
+                <th scope="col">Codice di tracking</th>
+                {% ifnotequal shipping_address.further_info None %}
+                    <th scope="col">Info per il corriere</th>
+                {% endifnotequal %}
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>{{ order.seller.business_name}}</td>
+                <td>{{ order.status.name}}</td>
+                <td>{{ order.shipment.get.courier.name}}</td>
+                <td>
+                    {% ifequal order.shipment.get.tracking_code None %}
+                        Non disponibile
+                    {% else %}
+                        {{ order.shipment.get.tracking_code }}
+                    {% endifequal %}
+                </td>
+                {% ifnotequal shipping_address.further_info None %}
+                    <td>{{ shipping_address.further_info }}</td>
+                {% endifnotequal %}
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <h4>Aggiungi feedback</h4><hr>
+    <div class="row">
+
+        <form method="post" id="add_feedback_form">
+
+            <label for="comment">Commento</label>
+            <textarea id="comment" name="comment" class="form-control mb-3 border-primary" placeholder="Commento" cols="1000"></textarea>
+
+            <label for="stars">Stelle</label>
+            <input type="number"  id="stars" name="stars" max="5" min="0" class="form-control mb-3 border-primary" placeholder="Stelle" required>
+
+            <button type="submit" class="btn mb-3 container-fluid btn-primary">
+                Aggiungi feedback
+            </button>
+        </form>
+    </div>
+
+    {% include 'includes/toasts/toast.html' with id='add_feedback_success' status='Successo!' message='' icon_classes='fas fa-check' header_classes='text-success' %}
+    {% include 'includes/toasts/toast.html' with id='add_feedback_error' status='Errore!' message='' icon_classes='fas fa-times' header_classes='text-danger' %}
+
+
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        $("#add_feedback_form").on('submit', function (event) {
+
+            event.preventDefault();
+
+            let formDataSerialized = $(this).serializeArray();
+            console.log(formDataSerialized);
+            let formData = {
+                "csrfmiddlewaretoken": "{{ csrf_token }}",
+
+            };
+
+            formDataSerialized.forEach(function (element){
+                let name = element["name"];
+
+                formData[name] = element["value"];
+            })
+
+            console.log(formData);
+            $.ajax({
+
+                type: 'POST',
+
+                url: '{% url 'orders.feedbacks.create' order.id  %}',
+
+                data: formData,
+
+                success: function (data) {
+                    let successToast = $("#add_feedback_success");
+                    let toast = new bootstrap.Toast(successToast)
+                    toast.show()
+                    successToast.children(".toast-body").text(data["message"]);
+                    $("#comment").val("");
+                    $("#stars").val(0);
+                }.bind(this),
+
+                error: function (response) {
+
+                    let responseJson = response.responseJSON;
+                    if(responseJson.hasOwnProperty('redirect'))
+                        window.location.href = responseJson["redirect"];
+                    else {
+                        let errorToast = $("#add_feedback_error")
+                        let toast = new bootstrap.Toast(errorToast)
+                        toast.show()
+                        errorToast.children(".toast-body").text(responseJson["message"]);
+                    }
+                }
+
+            });
+
+
+        });
+    </script>
+{% endblock %}

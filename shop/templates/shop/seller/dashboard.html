@@ -1,0 +1,65 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    <div class="row">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th scope="col" >Ricavo totale</th>
+                <th scope="col" >Ricavo medio per ordine</th>
+                <th scope="col" >Ordini totali</th>
+            </tr>
+            </thead>
+            <tbody >
+            <tr>
+                <td>{{ total_proceeds }} €</td>
+                <td>{{ average_proceeds_per_order }} €</td>
+                <td>{{ total_orders }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row mb-3">
+        <canvas id="monthly_proceeds_chart" height="50"></canvas>
+    </div>
+
+    {% ifnotequal recent_orders None %}
+        <div class="row">
+            {% include 'shop/seller/orders/includes/indexOrdersTable.html' with header_row="Ordini recenti" orders=recent_orders %}
+        </div>
+    {% endifnotequal %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
+    <script>
+
+        const ctx = document.getElementById('monthly_proceeds_chart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: 12}, (e, i) => {
+                    return new Date(null, i + 1, null).toLocaleDateString("it", {month: "short"});
+                }),
+                datasets: [{
+                    label: 'Ricavo mensile €',
+                    data: {{ monthly_proceeds }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+
+{% endblock %}
+

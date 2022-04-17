@@ -1,0 +1,23 @@
+<div id="messages_chat_{{ chat.id }}"  class="msg_history {% if chat.ended %}ended{% endif %}"
+     style="display:{{ display }}">
+    {% if chat.ended %}<div class="ended"><p class="text-danger">[Chat conclusa]</p> </div>{% endif %}
+    <div class="useful ">La chat è stata utile?
+        {% if chat.useful == 0 %}
+            <i class="up fas fa-thumbs-up" style="cursor: pointer"></i> <i class="down fas fa-thumbs-down" style="cursor: pointer"></i>
+        {% elif chat.useful == 1 %}
+            <i class="up fas fa-thumbs-up text-primary" disabled></i> <i class="down fas fa-thumbs-down" disabled></i>
+        {% elif chat.useful == -1 %}
+            <i class="up fas fa-thumbs-up" disabled></i> <i class="down fas fa-thumbs-down text-danger" disabled></i>
+        {% endif %}
+
+    </div>
+    <div class="messages">
+        {% for message in chat.messages.all %}
+            {% ifequal message.author_id request.user.id %}
+                {% include 'chat/includes/sentMessage.html' with message=message %}
+            {% else %}
+                {% include 'chat/includes/receivedMessage.html' with message=message %}
+            {% endifequal %}
+        {% endfor %}
+    </div>
+</div>

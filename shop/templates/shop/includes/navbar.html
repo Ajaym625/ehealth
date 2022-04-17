@@ -1,0 +1,216 @@
+{% load static %}
+{% load custom_filters %}
+<div class="header">
+    <div class="container-fluid theme-container">
+        <div class="top-header mb-2">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <a href="/">
+                        <img src="{% static 'assets/img/logos/logobig.png' %}" alt="LOGO" class="header-logo">
+                    </a>
+                </div>
+                <div class="col">
+                    <form id="search_by" action="{% url 'products.index' %}" method="get">
+                        <div class="input-group">
+                            <input name="query" type="text" class="form-control" style="background-color: #edf1fc" aria-label="Text input with dropdown button">
+                            <div class="input-group-append">
+                                <button id="search_by_dropdown_button" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Nome</button>
+                                <div class="dropdown-menu">
+                                    <a id="product_name" class="dropdown-item active" href="#">Nome</a>
+                                    <a id="active_substance" class="dropdown-item" href="#">Principio attivo</a>
+                                    <a id="excipient" class="dropdown-item" href="#">Eccipiente</a>
+                                    <a id="illness" class="dropdown-item" href="#">Malattia</a>
+                                </div>
+
+                            </div>
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-primary ">Cerca <i class="fas fa-search"></i></button>
+                            </div>
+
+                        </div>
+                    </form>
+                </div>
+                <div class="col-auto">
+                    <ul class="header-right-options">
+                        {% if not request.user.is_authenticated %}
+                            <li class="link-item">
+                                <a href="{% url 'login' %}" >Login</a>
+                            </li>
+                            <li class="link-item">
+                                <a href="{% url 'register' %}" >Register</a>
+                            </li>
+
+                        {% else %}
+                            <span>Benvenuto, {{ request.user.username }}</span>
+                            {% if not view.kwargs|as_seller %}
+                                <li class="head-cart-content" >
+                                    <a href="{% url 'cart.show' %}">
+                                        <button id="dropdownCartButton" class="btn" type="button"
+                                        >
+                                            <div class="list-icon">
+                                                <i class="ti-bag"></i>
+                                            </div>
+
+                                        </button>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+
+                        <li class="dropdown">
+                            <button id="dropdownCartButton" class="btn dropdown-toggle" type="button"
+                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <div class="list-icon">
+                                    <i class="ti-user"></i>
+                                </div>
+                            </button>
+
+                            {% if request.user.is_authenticated %}
+                                <div class="dropdown-menu dropdown-menu-right user-links"
+                                     aria-labelledby="dropdownMenuButton">
+                                    <ul>
+
+                                        <li class="bg-primary"> <a href="#" style="cursor: none; color: white"> <i class="fas fa-user"></i>
+                                            {% if request.user.seller or request.user.customer %}
+                                                {% if not request.user.seller %}
+                                                    Cliente
+                                                {% elif request.user.seller.is_pharmacist  %}
+                                                    Farmacista
+                                                {% else %}
+                                                    Casa farmaceutica
+                                                {% endif %}
+                                            {% else %}
+                                                Admin
+                                            {% endif %}
+                                        </a>
+                                        </li>
+
+                                        {% if view.kwargs|as_seller %}
+                                            <li><a href="{% url 'products.index' %}"><i class="fas fa-sign-in-alt"></i> Accedi come cliente</a></li>
+                                            <li><a href="{% url 'seller.orders.index' %}"><i class="fas fa-boxes"></i> Ordini</a></li>
+                                            <li><a href="{% url 'seller.orders.help_desk.index' %}"><i class="fas fa-boxes"></i> Ordini help desk</a></li>
+                                            <li><a href="{% url 'seller.products.index' %}"><i class="fas fa-cubes"></i> Tutti i prodotti</a></li>
+                                            <li><a href="{% url 'seller.products.check' %}"><i class="fas fa-plus-square"></i> Aggiungi prodotto</a></li>
+
+                                            {% if user.seller.is_pharmacist %}
+                                                <li><a  href="{% url 'chats.index' %}"><i class="fas fa-comments"></i> Chat</a></li>
+
+                                            {% endif %}
+                                        {% else %}
+                                            {% if user.seller %}
+                                                <li><a href="{% url 'seller.dashboard' %}"><i class="fas fa-sign-in-alt"></i> Accedi come venditore</a></li>
+                                            {% endif %}
+
+                                            {% if user.customer %}
+                                                <li><a href="{% url 'orders.index' %}"><i class="fas fa-boxes"></i> Ordini</a></li>
+                                                <li><a href="{% url 'addresses.index' %}"><i class="fas fa-map-marker-alt"></i> Indirizzi</a></li>
+                                                {% if not user.seller %} {% comment %} pure customer {% endcomment %}
+                                                    <li><a  href="{% url 'chats.index' %}"><i class="fas fa-comments"></i> Chat</a></li>
+
+                                                {% endif %}
+                                            {% else %}
+                                                <li><a href="{% url 'administration.orders.index' %}"><i class="fas fa-boxes"></i> Ordini</a></li>
+                                                <li><a href="{% url 'administration.chats.index' %}"><i class="fas fa-comments"></i> Chat</a></li>
+                                                <li><a href="{% url 'administration.pharmacists.index' %}">Approva farmacisti</a></li>
+
+
+                                            {% endif %}
+                                        {% endif %}
+
+                                        <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Esci</a></li>
+
+                                    </ul>
+                                </div>
+                            {% endif %}
+
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mobile-header">
+    <div class="container-fluid theme-container">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <ul class="header-left-options">
+                    <li class="link-item open-sidebar">
+                        <i class="ti-menu"></i>
+                    </li>
+                </ul>
+            </div>
+            <div class="col text-center">
+                <a href="/">
+                    <img src="{% static 'assets/img/logos/logobig.png' %}" alt="logo" class="header-logo">
+                </a>
+            </div>
+            {% if request.user.is_authenticated %}
+                <div class="col-auto">
+                    <ul class="header-right-options">
+                        <li class="link-item">
+                            <a href="{% url 'cart.show' %}">
+                                <i class="ti-bag"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+        <div class="menu-sidebar">
+            <div class="close">
+                <i class="ti-close"></i>
+            </div>
+
+            <div class="welcome d-flex align-items-center">
+                {% if not request.user.is_authenticated %}
+                    <a href="{% url 'login' %}" class="btn btn-soft-primary btn-md">Login</a>
+                    <a href="{% url 'register' %}" class="btn btn-primary btn-md">Register</a>
+                {% else %}
+                    <span>Benvenuto, {{ request.user.username }}</span>
+                {% endif %}
+            </div>
+            <div class="mobileMenuLinks mb-4 mt-2">
+                <ul>
+                    {% if request.user.is_authenticated %}
+                        {% if view.kwargs|as_seller %}
+                            <li><a href="{% url 'products.index' %}"><i class="fas fa-sign-in-alt"></i> Accedi come cliente</a></li>
+                            <li><a href="{% url 'seller.orders.index' %}"><i class="fas fa-boxes"></i> Ordini</a></li>
+                            <li><a href="{% url 'seller.orders.help_desk.index' %}"><i class="fas fa-boxes"></i> Ordini help desk</a></li>
+                            <li><a href="{% url 'seller.products.index' %}"><i class="fas fa-cubes"></i> Tutti i prodotti</a></li>
+                            <li><a href="{% url 'seller.products.check' %}"><i class="fas fa-plus-square"></i> Aggiungi prodotto</a></li>
+
+                            {% if user.seller.is_pharmacist %}
+                                <li><a  href="{% url 'chats.index' %}"><i class="fas fa-comments"></i> Chat</a></li>
+
+                            {% endif %}
+                        {% else %}
+                            {% if user.seller %}
+                                <li><a href="{% url 'seller.dashboard' %}"><i class="fas fa-sign-in-alt"></i> Accedi come venditore</a></li>
+                            {% endif %}
+
+                            {% if user.customer %}
+                                <li><a href="{% url 'orders.index' %}"><i class="fas fa-boxes"></i> Ordini</a></li>
+                                <li><a href="{% url 'addresses.index' %}"><i class="fas fa-map-marker-alt"></i> Indirizzi</a></li>
+                                {% if not user.seller %} {% comment %} pure customer {% endcomment %}
+                                    <li><a  href="{% url 'chats.index' %}"><i class="fas fa-comments"></i> Chat</a></li>
+
+                                {% endif %}
+                            {% else %}
+                                <li><a href="{% url 'administration.orders.index' %}"><i class="fas fa-boxes"></i> Ordini</a></li>
+                                <li><a href="{% url 'administration.chats.index' %}"><i class="fas fa-comments"></i> Chat</a></li>
+                                <li><a href="{% url 'administration.pharmacists.index' %}">Approva farmacisti</a></li>
+
+                            {% endif %}
+                        {% endif %}
+
+                        <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Esci</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="overlay"></div>
+</div>

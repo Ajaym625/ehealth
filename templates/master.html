@@ -1,0 +1,98 @@
+{% load static %}
+{% load compress %}
+{% load custom_filters %}
+<!doctype html>
+<html lang="it">
+{% comment %}<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    {% compress css %}
+        <link type="text/x-scss" href="{% static 'css/style.scss' %}" rel="stylesheet" media="screen">
+    {% endcompress %}
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+
+</head>{% endcomment %}
+
+<head>
+    <meta name="csrf_token" content="{{ csrf_token }}">
+    <!-- Describes the encoding of the page to the browser -->
+    <meta charset="utf-8">
+
+    <!-- Sets the title of the page.  Shown in the tab of your browser -->
+    <title>{% block page_title %}{% endblock %}</title>
+
+    <!-- Required for Bootstrap's responsive media queries to function -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="{% static 'assets/img/favicon.png' %}" type="image/png">
+
+    <!-- Meta tag for basic SEO -->
+    <meta name="description" content="hospitania">
+
+    <!-- Main Theme CSS styles -->
+    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" type="text/css" media="all" />
+{#    {% compress css %}#}
+{#        <link type="text/x-scss" href="{% static 'css/style.scss' %}" rel="stylesheet" media="screen">#}
+{#    {% endcompress %}#}
+    <!-- Font linked from external Google Fonts resource -->
+    <link rel="preconnect" href="https://fonts.gstatic.com/">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@200;300;400;600;700;800;900&amp;family=Poppins:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+{% block custom_style %}{% endblock %}
+</head>
+<body>
+{% include 'shop/includes/navbar.html' %}
+
+{#<script src="{% static 'js/jquery-3.6.0.min.js' %}"></script>#}
+<script src="{% static 'assets/js/jquery-2.2.4.min.js' %}"></script>
+{#<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>#}
+<script src="{% static 'assets/js/plugins.bundle.js' %}"></script>
+<script src="{% static 'assets/js/theme.js' %}"></script>
+
+
+<div class="container">
+    {% block content %}{% endblock %}
+
+
+</div>
+{% include 'shop/includes/footer.html' %}
+<script>
+    $(document).ready(function () {
+        $(".dropdown-item").click(function () {
+            let items = $(".dropdown-item");
+            let itemsLen = items.length;
+            for (let i = 0; i < itemsLen; i++) {
+                let item = items.eq(i);
+                if (item[0] === $(this)[0]) {
+                    item.addClass("active");
+                    $("#search_by_dropdown_button").text(item.text());
+                } else
+                    item.removeClass("active");
+            }
+        });
+
+        $("#search_by").submit(function (event) {
+            event.preventDefault();
+            let search_by = $(".dropdown-item.active").eq(0).attr('id')
+            let data = $(this).serialize() + "&search_by=" + search_by;
+            let url =  "/products?" + data;
+            window.location.href = url;
+        })
+    });
+</script>
+
+{% block scripts %}{% endblock %}
+
+
+</body>
+</html>

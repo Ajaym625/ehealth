@@ -1,0 +1,23 @@
+{% extends 'master.html' %}
+
+{% block content %}
+<div class="col-7 d-flex container-fluid justify-content-center mt-3">
+    <form action="{% url 'login' %}" class="" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}" />
+
+            <label for="username">username: </label>
+            <input placeholder="username" type="text" id="username" name="username" class="form-control mb-3 border-primary">
+
+
+            <label for="password">password: </label>
+            <input placeholder="password" type="password" id="password" name="password" class="form-control mb-3 border-primary">
+
+    <button type="submit" class="btn mb-3 container-fluid btn-primary">Accedi</button>
+    </form>
+</div>
+
+    {% for message in messages %}
+        {% include 'shop/includes/messages/success.html' %}
+    {% endfor %}
+{% endblock %}

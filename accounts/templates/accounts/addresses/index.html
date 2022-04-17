@@ -1,0 +1,92 @@
+{% extends 'master.html' %}
+
+{% block content %}
+
+    {#        <div class="card">#}
+    {#            <div class="card-body">#}
+    <div class="row mt-3">
+        {% for address in addresses %}
+            <div class="col-lg-6">
+
+                <div class="address-block bg-light rounded p-3 m-3">
+
+                        <form method="post" action="{% url 'addresses.destroy' address.id %}" class="">
+                            {% csrf_token %}
+                             <button type="submit" class="btn delete_address">
+                                 <i class="fa fa-trash text-danger" aria-hidden="true"></i> Rimuovi
+                             </button>
+                        </form>
+{#                <a href="#" class="edit_address" data-toggle="modal" data-dismiss="modal" data-target="#address_model">#}
+{#                        <i class="fa fa-pencil-square-o" aria-hidden="true"></i>Modifica#}
+{#                    </a>#}
+
+
+                    <p class="text-muted">
+                        {% if address.is_billing and address.is_shipping %}
+                            indirizzo di spedizione/fatturazione
+
+                        {% elif address.is_billing %}
+                            indirizzo di fatturazione
+                        {% else %}
+                            indirizzo di spedizione
+                        {% endif %}
+
+                    </p>
+                    <span class="text-muted">{{ address}}</span>
+                </div>
+            </div>
+        {% endfor %}
+
+    </div>
+    <div class="row ml-3">
+        <a href="{% url 'addresses.create' %}">
+            <button type="button" class="btn mt-1 btn-primary">
+                <i class="fas fa-plus-square"></i> Aggiungi un nuovo indirizzo
+            </button>
+        </a>
+    </div>
+    {#            </div>#}
+    {#        </div>#}
+
+
+    {#    <div class="row">#}
+    {#        <table class="table table-bordered">#}
+    {#            <thead>#}
+    {##}
+    {#            <tr>#}
+    {#                <th scope="col">Indirizzo</th>#}
+    {#                <th scope="col">Spedizione</th>#}
+    {#                <th scope="col">Fatturazione</th>#}
+    {#            </tr>#}
+    {#            </thead>#}
+    {#            <tbody >#}
+    {#            {% for address in addresses %}#}
+    {#                <tr>#}
+    {#                    <th scope="row">{{ address }}#}
+    {##}
+    {#                        <form method="post" action="#">#}
+    {#                            {% csrf_token %}#}
+    {#                            <button title="Modifica" type="submit" class="btn bg-white btn-outline-primary border-primary mb-1">#}
+    {#                                <i class="fas fa-edit"></i> Modifica#}
+    {#                            </button>#}
+    {#                        </form>#}
+    {#                        <form method="post" action="{% url 'addresses.destroy' address.id %}">#}
+    {#                            {% csrf_token %}#}
+    {#                            <button title="Rimuovi" type="submit" class="btn bg-white btn-outline-primary border-primary mb-1">#}
+    {#                                <i class="fas fa-trash-alt"></i> Rimuovi#}
+    {#                            </button>#}
+    {#                        </form>#}
+    {#                    </th>#}
+    {#                    <td>{% if address.is_shipping %}SI{% else %}NO{% endif %}</td>#}
+    {#                    <td>{% if address.is_billing %}SI{% else %}NO{% endif %}</td>#}
+    {#                </tr>#}
+    {#            {% endfor %}#}
+    {#            </tbody>#}
+    {#        </table>#}
+    {#    </div>#}
+
+
+
+
+
+{% endblock %}

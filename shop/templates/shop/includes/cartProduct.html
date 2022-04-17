@@ -1,0 +1,81 @@
+{% load custom_filters  %}
+{% block content %}
+    <div class="cart_item">
+        <div class="cart_item_image">
+            <img src="{{ MEDIA_URL }}{{ package.file}}" alt="shop">
+        </div>
+        <div class="c-item-body mt-4 mt-md-0">
+            <div class="cart_item_title mb-2">
+                <h4>{{ package.name}}</h4>
+                <p class="small mb-0 text-muted">{{ package.amount }} {{ package.type }} {{ package.dosage }} mg</p>
+                <p class="small mb-0 text-muted">
+                   Venduto da: <a href="{% url 'profiles.show' package.seller_user_id %}">{{ package.business_name }}</a>
+                </p>
+                {% if package.needs_prescription %}
+                    <p class="small mb-0 text-muted needs_prescription" data-pharmacy_address="{{ package.seller_blockchain_address }}" data-product_id="{{ package.product_id }}"><strong>Questo farmaco richiede una prescrizione medica.</strong></p>
+                {% endif %}
+
+            </div>
+            <div class="cart_item_price">
+                <div class="product-price">
+                                        <span>
+                                            <strong>{{ package.price  }} €</strong>
+
+                                        </span>
+                </div>
+                <div class="cart_product_remove">
+                    <form id="remove_product_form" method="post" action="{% url 'cart.package.destroy' package.package_id  %}" >
+                        {% csrf_token %}
+                        <button type="submit" class="btn">
+                            <i class="ti-trash"></i> Rimuovi
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+        <div class="qty-input btn mt-4 mt-md-0">
+
+            <form class="update_package_quantity_in_cart" data-package_id="{{ package.package_id }}">
+                <input name="requested_quantity" type="number" value="{{ package.requested_quantity }}" min="1" max="{{ package.available_quantity }}">
+            </form>
+
+        </div>
+    </div>
+
+    {% comment %}
+    <div class="bg-secondary card mb-3 border-primary-1" >
+        <img src="" class="card-img-top" alt="...">
+        <div class="card-body">
+            <h5 class="card-title"></h5>
+            <form class="update_package_quantity_in_cart" data-package_id="{{ package.package_id }}">
+                <label>Quantità:</label>
+                <input name="requested_quantity"
+                       type="number"
+                       min="1"
+                       max="{{ package.available_quantity }}"
+                       class="form-control mb-3 border-primary"
+                       placeholder="Quantità (Max: {{ package.available_quantity }})"
+                       value="{{ package.requested_quantity }}"
+                       required
+                >
+            </form>
+            <div class="text-center mb-1">
+                <p class="card-text">
+                    {% ifequal package.type 'gocce' %}
+                        {{ package.type }} - {{ package.dosage }} mg
+                    {% else %}
+                        {{ package.amount }} {{ package.type }} {{ package.dosage }} mg
+                    {% endifequal %}
+                    <br>
+                    <b>Venduto da:</b> {{ package.business_name }}
+                </p>
+                <p class="fs-5 card-text fw-bold">
+                    {{ package.price  }}€
+                </p>
+            </div>
+        </div>
+
+
+    </div>{% endcomment %}
+{% endblock %}

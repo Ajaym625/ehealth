@@ -1,0 +1,74 @@
+{% block content %}
+    <div class="col-md-4 col-sm-6 col-12">
+        <div class="product">
+            <a href="{% if view.kwargs.seller %}
+                            {% url 'seller.products.show' product.id %}
+                        {% else %}
+                            {% url 'products.show' product.id %}
+                        {% endif %}" class="product-img">
+                <img src="{{ MEDIA_URL }}{{ product.file }}" class="" alt="">
+            </a>
+            <div class="product-info">
+                <div class="product-rating">
+                                            <span>{% if product.has_sponsor %}
+                                                Sponsorizzato
+                                            {% endif %}</span>
+                    {% comment %}<i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star"></i>
+                                            <i class="fa fa-star-half-o"></i>
+                                            <i class="fa fa-star-o"></i>
+                                            <div class="review-count">4.5 (2,213)</div>{% endcomment %}
+                </div>
+                <h3>
+                    <a href="{% if view.kwargs.seller %}
+                            {% url 'seller.products.show' product.id %}
+                        {% else %}
+                            {% url 'products.show' product.id %}
+                        {% endif %}">{{ product.name }}</a>
+                </h3>
+                <div class="product-value">
+                    {% comment %} <div class="d-flex">
+                                                <small class="regular-price">MRP <del>{{ product.price }} €</del></small>
+                                                <div class="off-price">53% off</div>
+                                            </div>{% endcomment %}
+                    <div class="current-price">{{ product.price }} €</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% comment %}
+    <div class="bg-secondary card mb-3 border-primary-1" >
+        <img src="{{ MEDIA_URL }}{{ product.file }}" class="card-img-top" alt="...">
+        <div class="card-body">
+            <h5 class="card-title">{{ product.name }}</h5>
+            <div class="text-center mb-1">
+                <p class="fs-5 card-text fw-bold">
+
+                </p>
+            </div>
+
+            <div class="text-center">
+                <a href="
+                        {% if view.kwargs.seller %}
+                            {% url 'seller.products.show' product.id %}
+                        {% else %}
+                            {% url 'products.show' product.id %}
+                        {% endif %}">
+
+                    <button title="Piu informazioni" type="button" class="btn bg-white btn-outline-primary border-primary">
+                        <i class="fas fa-info-circle"></i></button>
+                </a>
+                {% if product.has_sponsor %}
+                    <h6>Sponsorizzato</h6>
+                {% endif %}
+            </div>
+
+
+        </div>
+    </div>{% endcomment %}
+
+
+
+{% endblock %}

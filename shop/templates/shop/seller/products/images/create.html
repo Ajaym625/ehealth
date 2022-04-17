@@ -1,0 +1,13 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    <div class="col-7 d-flex container-fluid justify-content-center">
+        <form method="post" action="" class="" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn mb-3 container-fluid btn-primary">
+                Carica immagini
+            </button>
+        </form>
+    </div>
+{% endblock %}

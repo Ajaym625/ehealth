@@ -1,0 +1,36 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    {% ifnotequal offers None %}
+        <div class="row">
+
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th colspan="2" scope="col">
+                        Tutte le offerte di {{ offers.0.product__name }}
+                    </td>
+                </tr>
+                </thead>
+                <tbody >
+                {% for offer in offers %}
+                    <tr>
+                        <td>{{ offer.price }}€ - Venduto da: {{ offer.business_name }}
+
+                        </td>
+                        <td>
+                            <form method="post" class="add_to_cart">
+                                <button id="add_to_cart_button" type="submit" class="btn btn-primary">
+                                    Aggiungi al carrello
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        {% include 'shop/includes/messages/warning.html' with message='Nessuna offerta per questo prodotto o il prodotto non esiste!' %}
+    {% endifnotequal %}
+{% endblock %}

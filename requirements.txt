@@ -1,0 +1,5 @@
+rdoclient
+django-excel
+django-mathfilters
+django-compressor
+django-channels

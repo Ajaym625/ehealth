@@ -1,0 +1,440 @@
+{% extends 'master.html' %}
+{% load static %}
+{% block custom_style %}
+    <style>
+        .visually-hidden,
+        .visually-hidden-focusable:not(:focus):not(:focus-within) {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="orders row visually-hidden">
+        {% if orders is not None %}
+
+
+            <table class="table table-bordered">
+                <thead>
+
+                <tr>
+                    <th scope="col" >Ordine # {{ kwargs }}</th>
+                    <th scope="col" >Venditore</th>
+                    <th scope="col" >Data di acquisto</th>
+                    <th scope="col" >Prezzo totale</th>
+                    <th scope="col" >Stato</th>
+                </tr>
+                </thead>
+                <tbody >
+                {% for order in orders %}
+                    <tr>
+                        <th scope="row"><a href="{% url 'orders.show' order.id %}">{{ order.id }}</a></th>
+                        <th>{{ order.seller.business_name }}</th>
+                        <th>{{ order.date| date:"j/n/Y G:i" }}</th>
+                        <th>{{ order.total_price }}€</th>
+                        <th>{{ order.status.name }}</th>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <form id="export_data_form">
+                <button type="submit" class="btn btn-rounded btn-primary" >esporta dati</button>
+            </form>
+
+        {% else %}
+            {% include 'shop/includes/messages/warning.html' with message='Nessun ordine effettuato!' %}
+        {% endif %}
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script type="text/javascript" src="{% static 'assets/js/safePrescription/contract-data/nft-contranct_info.js' %}"></script>
+
+    <script>
+        function download(filename, text) {
+            var pom = document.createElement('a');
+            pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            pom.setAttribute('download', filename);
+
+            if (document.createEvent) {
+                var event = document.createEvent('MouseEvents');
+                event.initEvent('click', true, true);
+                pom.dispatchEvent(event);
+            }
+            else {
+                pom.click();
+            }
+        }
+
+
+        $("#export_data_form").submit(function (event) {
+            event.preventDefault();
+
+
+            $.ajax({
+
+                type: 'POST',
+
+                url: '{% url 'orders.export' %}',
+
+                data: {
+                    "csrfmiddlewaretoken": $("[name='csrf_token']").attr("content"),
+                },
+
+                success: function (data) {
+                    download("data.csv",data);
+                }.bind(this),
+
+                error: function (response) {
+                    console.log(response);
+
+
+                }.bind(this)
+
+            });
+
+
+        });
+
+
+
+        //Load blockchain connection
+        var NFTContract;
+        var userAccount;
+
+        async function startApp() {
+                NFTContract = new web3.eth.Contract(abi_contract, address_contract);
+                var accounts = await web3.eth.getAccounts();
+
+                trasferisciAllaFarmacia();
+
+
+        }
+
+        window.addEventListener('load', async () => {
+            // Modern dapp browsers...
+            console.log("Start");
+            console.log(window.localStorage.getItem('prescriptionId'));
+            if(window.localStorage.getItem('prescriptionId') !== null) {
+                if (window.ethereum) {
+                    window.web3 = new Web3(ethereum);
+                    try {
+                        await ethereum.enable();
+                        var accounts = await web3.eth.getAccounts();
+                        var option = {from: accounts[0]};
+                        userAccount = accounts[0];
+                        console.log(userAccount);
+                        userAccountCheck = false;
+                        let account = '';
+                        {% if request.user.customer %}
+                            account = '{{ request.user.customer.blockchain_address }}';
+                            userAccountCheck = account === userAccount;
+                            if (userAccountCheck)
+                                startApp();
+                            else
+                                alert("Account errato, cambiare account su metamask!");
+                        {% endif %}
+
+
+                    } catch (error) {
+                        console.log(error);
+                    }
+                }
+                // Legacy dapp browsers...
+                else if (window.web3) {
+                    window.web3 = new Web3(web3.currentProvider);
+                    startApp()
+                    // Acccounts always exposed
+                }
+                // Non-dapp browsers...
+                else {
+                    console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+                }
+            }
+            else
+                $(".orders").removeClass("visually-hidden");
+        })
+
+        function readMyPresciption() {
+            NFTContract.methods.getOwnerToken().call({from: userAccount}).then(value => {
+
+                if (value.length > 0) {
+                    $('#no-pre-pat').hide();
+
+                    for (var x of value) {
+                        NFTContract.methods.readPrescriptionData(x).call({from: userAccount}).then(presc => {
+                            console.log(presc)
+                            {#var options = {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'};#}
+                            var optionsWithHours = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: "numeric", minute: "numeric"};
+
+                            var d = new Date(+presc.releaseOn * 1000);
+                            var data = d.toLocaleDateString("it-IT", optionsWithHours);
+                            var i = x;
+
+                            var expiry = new Date();
+                            expiry.setDate(expiry.getDate() + 30);
+                            var isValid = expiry >= d;
+                            var v = isValid ? "Valida" : "Scaduta";
+                            let disabled = !isValid ? " disabled" : "";
+                            $('.prescriptions').append(
+                                '                <tr>' +
+                                '                    <td>' + presc.token + '</td>' +
+                                '                    <td>' + presc.nre + '</td>' +
+                                '                    <td>' + presc.farmaci + '</td>' +
+                                {#'                    <td>' + presc.patient + '</td>' +#}
+                                '                    <td>' + presc.doctor + '</td>' +
+                                '                    <td>' + data + '</td>' +
+                                '                    <td>' + v + '</td>' +
+                                '<td><form method="post" data-products="' + presc.farmaci + '" class="check_prescription"><button type="submit" class="check_prescription_button btn mb-3 container-fluid btn-primary"' + disabled +'>Approva ricetta</button></form>' +'</td>' +
+                                '</tr>'
+                            );
+
+                            $(".check_prescription").submit(function (event) {
+                                event.preventDefault();
+                                let productsWithPrescriptionsNames = $(this).data('products');
+
+                                $.ajax({
+
+                                    type: 'POST',
+
+                                    url: '{% url 'cart.prescriptions.check' %}',
+
+                                    data: {
+                                        "productsWithPrescriptionsNames": productsWithPrescriptionsNames,
+                                        "csrfmiddlewaretoken": $("[name='csrf_token']").attr("content"),
+                                    },
+
+                                    success: function (data) {
+                                        let prescriptionApproved = data.message;
+
+                                        if(prescriptionApproved){
+                                            $(".check_prescription_button").attr("disabled",true);
+                                            $(this).children().eq(0).html("Ricetta approvata");
+                                            $("#checkout_button").attr("disabled", false);
+                                        }
+                                        else
+                                            alert("Ricetta non approvata, alcuni farmaci non corrispondono a quelli richiesti!");
+
+
+                                    }.bind(this),
+
+                                    error: function (response) {
+                                        let data = response.responseJSON;
+                                        alert(data.error);
+                                        if(data.hasOwnProperty('old_quantity'))
+                                            $('#requested_quantity_floating',this).val(data.old_quantity);
+                                        else
+                                            window.location.href = {% url 'cart.show' %};
+
+
+                                    }.bind(this)
+
+                                });
+
+
+                            });
+
+
+
+                        }, reason => {
+                            alert("ERROR: non è stato possibile effettuare l'azione richiesta");
+                            console.log(reason)
+                        });
+                    }
+                }
+            }, reason => {
+                console.log(reason)
+            });
+        }
+
+        function trasferisciAllaFarmacia() {
+            let tokenId = window.localStorage.getItem('prescriptionId');
+            let indirizzo = window.localStorage.getItem('pharmacy_address');
+           {% comment %} let indirizzo = "0x571Ac52c4A4c0Dc22318cA5b3ff806bcb8c8b57B";
+            console.log("indirizzo farmacia");
+            console.log(indirizzo);{% endcomment %}
+
+            if(tokenId !== null && indirizzo !== null) {
+                window.localStorage.removeItem('prescriptionId');
+                window.localStorage.removeItem('pharmacy_address');
+                $('#modalPat').modal('show');
+                $('#append-stuff-pat').empty();
+
+                console.log(indirizzo);
+                console.log(tokenId);
+                console.log(userAccount);
+
+
+                return NFTContract.methods.transferToPharmacy(indirizzo, tokenId).send({from: userAccount})
+                    .on("transactionHash", function (hash) {
+                        console.log(hash);
+                    })
+                    .on("receipt", function (receipt) {
+                        $('#append-stuff-pat').append("<p style=\"color: green;\"> Transazione eseguita</p>");
+                        sleep(3000).then(() => {
+                            $('#pharmacyAddress').val("");
+                            $('#nreToPharmacy').val("");
+                            $('#modalPat').modal("hide");
+                        });
+                        $(".orders").removeClass("visually-hidden");
+
+
+                    })
+                    .on("error", function (error) {
+                        // Do something to alert the user their transaction has failed
+                        $('#append-stuff-pat').append("<label style=\"color: red;\"> Errore: controllare la console per leggere l'errore</label>");
+                        sleep(5000).then(() => {
+                            $('#modalPat').modal("hide");
+                        });
+                        console.log("ERRORE");
+                        console.log(error);
+                        $(".orders").removeClass("visually-hidden");
+                    });
+            }
+        }
+
+        function trasferisciAlDottore() {
+            var tokenId = $('#tokenIdToDoctor').val();
+            $('#modalPat').modal('show');
+            $('#append-stuff-pat').empty();
+
+
+            return NFTContract.methods.trasferToDoctorFromPatient(tokenId).send({from: userAccount})
+                .on("transactionHash", function (hash) {
+                    console.log(hash)
+                })
+                .on("receipt", function (receipt) {
+                    $('#append-stuff-pat').append("<p style=\"color: green;\"> Transazione eseguita con successo</p>");
+                    sleep(3000).then(() => {
+                        $('#tokenIdToDoctortokenIdBurn').val("");
+                        $('#modalPat').modal('hide');
+                    })
+
+                })
+                .on("error", function (error) {
+                    // Do something to alert the user their transaction has failed
+                    $('#append-stuff-pat').append("<label style=\"color: red;\"> Attenzione! controllare la console per leggere l'errore!</label>");
+                    sleep(5000).then(() => {
+                        $('#modalPat').modal('hide');
+                    });
+                    console.log("ERRORE");
+                    console.log(error);
+
+                });
+        }
+
+
+        function burnPrescription() {
+            var tokenId = $('#tokenIdBurn').val();
+            $('#modalPat').modal('show');
+            $('#append-stuff-pat').empty();
+
+            console.log(tokenId);
+            return NFTContract.methods.Burn(tokenId).send({from: userAccount})
+                .on("transactionHash", function (hash) {
+                    console.log(hash);
+                })
+                .on("receipt", function (receipt) {
+                    $('#append-stuff-pat').append("<br><p style=\"color: green;\"> Transazione eseguita</p>");
+                    sleep(3000).then(() => {
+                        $('#modalPat').modal('hide');
+                        $('#tokenIdBurn').val("");
+                    });
+
+
+                })
+                .on("error", function (error) {
+                    // Do something to alert the user their transaction has failed
+                    $('#append-stuff-pat').append("<label style=\"color: red;\"> Errore: controllare la console per leggere l'errore</label>");
+                    sleep(5000).then(() => {
+                        $('#modalPat').modal('hide');
+                    });
+                    console.log("ERRORE");
+                    console.log(error);
+
+
+                });
+
+        }
+
+        function readHistoryPresciptions() {
+            NFTContract.methods.takeHistory(userAccount).call({from: userAccount}).then(presc => {
+                if (presc.length > 0) {
+
+                    for (var i in presc) {
+
+                        const ACTION = {
+                            0: 'trasferita',
+                            1: 'bruciata',
+                            2: 'creata',
+                        }
+                        const MOVED_TO = {
+                            0: 'dottore',
+                            1: 'paziente',
+                            2: 'farmacia',
+                            3: 'SSN',
+                        }
+
+                        {#var options = {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'};#}
+                        var optionsWithHours = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: "numeric", minute: "numeric"};
+
+                        var d = new Date(+presc[i].releaseOn * 1000);
+                        var data = d.toLocaleDateString("it-IT", optionsWithHours);
+
+                        var expiry = new Date();
+                        expiry.setDate(expiry.getDate() + 30);
+                        var isValid = expiry >= d;
+                        var v = isValid ? "Valida" : "Scaduta"
+
+
+                        {#var optionsWithHours = {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: "numeric", minute: "numeric"};#}
+                        var trDate = new Date(+presc[i].transactionTimestamp * 1000);
+                        var transactionTimestamp = trDate.toLocaleDateString("it-IT", optionsWithHours);
+
+                        $('.prescriptions_history').append(
+                            '                <tr>' +
+                            '                    <td>' + presc[i].token + '</td>' +
+                            '                    <td>' + presc[i].nre + '</td>' +
+                            '                    <td>' + presc[i].farmaci + '</td>' +
+                            {#'                    <td>' + presc[i].patient + '</td>' +#}
+                            {#'                    <td>' + presc[i].doctor + '</td>' +#}
+                            {#'                    <td>' + presc[i].pharmacy + '</td>' +#}
+                            '                    <td>' + data + '</td>' +
+                            {#'                    <td>' + v + '</td>' +#}
+                            {#'                    <td>' + ACTION[presc[i].action] + '</td>' +#}
+                            {#'                    <td>' + MOVED_TO[presc[i].movedTo] + '</td>' +#}
+                            {#'                    <td>' + transactionTimestamp + '</td>' +#}
+                            '<td>' +
+                            '<form method="post" data-products="' + presc[i].farmaci + '"><button type="submit" class="check_prescription_button btn mb-3 container-fluid btn-primary">Approva ricetta</button></form>' +'</td>' +
+
+                            '</tr>'
+
+                        );
+                    }
+
+                }
+            }, reason => {
+                alert("ERROR: non è stato possibile effettuare l'azione richiesta");
+                console.log(reason)
+            });
+        }
+
+        function sleep(ms) {
+            return new Promise(
+                resolve => setTimeout(resolve, ms)
+            );
+        }
+
+    </script>
+
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    <div class="row">
+        {% if orders is not None %}
+            {% include 'shop/admin/orders/includes/indexOrdersTable.html' %}
+            <form id="export_data_form">
+                <button type="submit" class="btn btn-rounded btn-primary" >esporta dati</button>
+            </form>
+        {% else %}
+            {% include 'shop/includes/messages/warning.html' with message='Nessun Prodotto ordinato!' %}
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+
+    <script>
+        function download(filename, text) {
+            var pom = document.createElement('a');
+            pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            pom.setAttribute('download', filename);
+
+            if (document.createEvent) {
+                var event = document.createEvent('MouseEvents');
+                event.initEvent('click', true, true);
+                pom.dispatchEvent(event);
+            }
+            else {
+                pom.click();
+            }
+        }
+
+
+        $("#export_data_form").submit(function (event) {
+            event.preventDefault();
+
+
+            $.ajax({
+
+                type: 'POST',
+
+                url: '{% url 'administration.orders.export' %}',
+
+                data: {
+                    "csrfmiddlewaretoken": $("[name='csrf_token']").attr("content"),
+                },
+
+                success: function (data) {
+                    download("data.csv",data);
+                }.bind(this),
+
+                error: function (response) {
+                    console.log(response);
+
+
+                }.bind(this)
+
+            });
+
+
+        });
+
+
+        </script>
+
+{% endblock %}

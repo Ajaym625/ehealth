@@ -1,0 +1,526 @@
+{% extends 'master.html' %}
+{% load custom_filters  %}
+
+{% block page_title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+
+    <div class="container-fluid">
+
+        <div class="row justify-content-between">
+            <div class="col-lg-4 mt-4">
+                <div id="carouselExampleSlidesOnly" class="carousel slide" data-ride="carousel">
+                    <div class="carousel-inner">
+                        {% for image in images %}
+                            <div class="carousel-item {% ifequal image.is_main True %}active{% endifequal %}">
+                                <img src="{{ MEDIA_URL }}{{ image.file}}" class="d-block w-100" alt="">
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-8 mt-4">
+                <div class="row pl-lg-3">
+                    <div class="col-12">
+                        <div class="single-product-content-description">
+                            <h4 class="product-title">{{ product.name }}</h4>
+
+                            <div class="single-info">
+                                <span class="d-block text-muted mb-2"><strong>AIC:</strong> {{ product.aic }}</span>
+                                <span class="d-block text-muted mb-2"><strong>Categoria:</strong> {{ product.category.name}}</span>
+                               <p  class="single-info d-block text-muted mb-2"><strong>Venduto da:</strong>
+                                    <a id="sold_by" href="{% url 'profiles.show' packages.0.user_id %}">{{ packages.0.business_name }}</a>
+                                </p>
+                                {% if product.needs_prescription %}
+                                    <span class="d-block text-muted mb-2">
+                                        <strong>
+                                            Questo farmaco richiede prescrizione medica, la quale sarà richiesta prima del pagamento.
+                                        </strong>
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="varient mt-4">
+                                <h6 class="font-weight-bold text-dark mb-3">Pacchetti</h6>
+                                <div class="row box-checkbox" id="requested_package">
+                                    {% for package in packages %}
+                                        <label tabindex="0">
+                                            <input tabindex="-1" type="checkbox" class="requested_package"
+                                                   data-package_id="{{ package.package_id }}"
+                                                   data-package_type="{{ package.type }}"
+                                                   data-package_amount="{{ package.amount }}"
+                                                   data-package_dosage="{{ package.dosage }}"
+                                                   data-package_price="{{ package.price }}"
+                                                   data-package_available_quantity="{{ package.available_quantity }}"
+                                                   data-package_seller_business_name="{{ package.business_name }}"
+                                                   data-request_info_url="{% url 'chats.create' package.package_id %}"
+                                                   data-offers_url="{% url 'products.packages.offers.index' package.product_id package.package_id %}"
+                                                   {% ifequal package packages.0  %}checked{% endifequal %}>
+                                            <div class="icon-box">
+                                                <div class="label">{% if package.is_sponsored %}[<b>Sponsorizzato</b>]{% endif %}
+                                                    {{ package.amount }} {{ package.type }} - {{ package.dosage }}mg<br>
+                                                    disponibilità: {{ package.available_quantity }} pezzi</div>
+                                                <span class="value">{{ package.price  }} €</span>
+                                            </div>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="product-actions my-4">
+
+                                <div class="product-buttons ml-0 ml-md-3 mt-4 mt-md-0 text-md-left text-center">
+                                    <form class="add_to_cart" >
+                                        <!-- Quantity -->
+                                        <div class="qty-input btn mb-3">
+
+                                            <input name="requested_quantity" type="number" value="1">
+
+                                        </div>
+                                        <!-- End Quantity -->
+                                        <button id="add_to_cart_button" type="submit" class="add_to_cart btn btn-rounded btn-primary">
+                                            <i class="fa fa-shopping-cart"></i>  Aggiungi al carrello
+                                        </button>
+                                    </form>
+                                    <h6><span class="cart_badge badge bg-primary text-white visually-hidden"></span></h6>
+
+                                </div>
+                                {% if request.user.customer and not request.user.seller %}
+                                    <form id="request_info_form" method="post" action="{% url 'chats.create' packages.0.package_id %}">
+                                        {% csrf_token %}
+                                        <div class="product-buttons ml-0 ml-md-3 mt-4 mt-md-0 text-md-left text-center">
+                                            <button type="submit" class="btn btn-rounded btn-primary">
+                                                Richiedi informazioni su questo prodotto
+                                            </button>
+                                        </div>
+                                    </form>
+
+
+                                {% endif %}
+
+
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        {% if messages %}
+                            <div>
+                                {% for message in messages %}
+                                    <h6><span class="cart_badge badge bg-primary text-white">{{ message }}</span></h6><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+
+                <div class="row" id="offers_row" style="display: none">
+                    <div>
+                        <table class="table table-bordered">
+                            <thead>
+                            <tr >
+                                <th scope="col" colspan="2">
+                                    Confronta offerte -
+                                    <a id="all_offers" href="{% url 'products.packages.offers.index' packages.0.product_id packages.0.package_id %}">
+                                        Mostra tutte le offerte
+                                    </a>
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody id="offers_body">
+
+                            {% for offer in offers %}
+                                <tr>
+                                    <td>{{ offer.price }}€ - Venduto da: {{ offer.business_name }} </td>
+
+                                    <td>
+                                        <form class="add_offer_to_cart" data-package_id="{{ offer.id }}">
+                                            <button type="submit" class="add_offer_to_cart_button btn btn-primary">
+                                                Aggiungi al carrello
+                                            </button>
+                                        </form>
+                                    </td>
+
+                                </tr>
+                            {% endfor %}
+
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+
+
+
+
+            </div>
+
+            <div class="row">
+                <div class="product-full-description">
+                    {% comment %}<div class="container">
+                <div class="row">{% endcomment %}
+                    <div class="col-12">
+                        <h3 class="entry-product-section-heading">Descrizione</h3>
+                        {{ product.description|safe }}
+                    </div>
+                    {% comment %} </div>
+            </div>{% endcomment %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    {% comment %}------------------------------------------------{% endcomment %}
+    {% comment %}------------------------------------------------{% endcomment %}
+    {% comment %}------------------------------------------------{% endcomment %}
+    {% comment %}<div class="row">
+        <div class="col-lg-5 col-md-5 col-sm-5 mb-3">
+            <div id="product_images_carousel" class="carousel slide " data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    {% for image in images %}
+                        <div class="carousel-item {% ifequal image.is_main True %}active{% endifequal %}">
+                            <img src="{{ MEDIA_URL }}{{ image.file}}" class="d-block w-100" alt="">
+                        </div>
+                    {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#product_images_carousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#product_images_carousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+        </div>
+        <div class="col-lg-7 col-md-7 col-sm-7 mb-3">
+
+            {% include 'shop/includes/titleLine.html' with content_title=product.name %}
+            <b>aic: </b>{{ product.aic }}<br>
+            <b>Categoria: </b> {{ category_name}}<br>
+
+            <form class="add_to_cart">
+
+                <div class="row mt-3">
+                    <div class="form-floating col-lg-8 col-12">
+
+                        <select name="requested_package_id" id="requested_package_id_floating" class="form-select mb-3 btn-outline-primary bg-white">
+                            {% for package in packages %}
+                                <option value="{{ package.package_id }}"
+                                        data-package_type="{{ package.type }}"
+                                        data-package_amount="{{ package.amount }}"
+                                        data-package_dosage="{{ package.dosage }}"
+                                        data-package_price="{{ package.price }}"
+                                        data-package_available_quantity="{{ package.available_quantity }}"
+                                        data-package_seller_business_name="{{ package.business_name }}"
+                                        data-offers_url="{% url 'products.packages.offers.index' package.product_id package.package_id %}"
+                                >
+                                    {% if package.is_sponsored %}[<b>Sponsorizzato</b>]{% endif %}
+                                    {{ package.amount }} {{ package.type }} - {{ package.dosage }}mg
+                                    - {{ package.price  }}€/unità - disponibilità: {{ package.available_quantity }} pezzi
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <label for="requested_package_id_floating">Confezione e prezzo</label>
+
+
+                    </div>
+                    <div class="col-lg-4 col-12">
+                        <input id="requested_quantity"
+                               name="requested_quantity"
+                               type="number"
+                               min="1"
+                               max="{{ packages.0.available_quantity }}"
+                               class="form-control mb-3 border-primary"
+                               placeholder="Quantità (Max: {{ packages.0.available_quantity }})"
+                               required
+                        >
+                    </div>
+                    <div>
+                        <b>venduto da:</b>
+                        <a href="{% url 'profiles.show' packages.0.user_id %}"><p id="sold_by" style="display: inline">
+                            {{ packages.0.business_name }}</p>
+                        </a>
+
+                        <button id="add_to_cart_button" type="submit" class="btn my-3 container-fluid  bg-white btn-outline-primary">
+                            Aggiungi al carrello
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            {% if request.user.customer and not request.user.seller %}
+                <form method="post" action="{% url 'chats.create' packages.0.package_id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn mb-3 container-fluid  bg-white btn-outline-primary">
+                        Richiedi informazioni su questo prodotto
+                    </button>
+                </form>
+            {% endif %}
+
+            <div class="row visually-hidden" id="offers_row">
+                <div>
+                    <table class="table table-bordered ">
+                        <thead>
+                        <tr>
+                            <th scope="col">
+                                Confronta offerte -
+                                <a id="all_offers" href="{% url 'products.packages.offers.index' packages.0.product_id packages.0.package_id %}">
+                                    Mostra tutte le offerte
+                                </a>
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody id="offers_body">
+                        {% ifnotequal offers None %}
+                            {% for offer in offers %}
+                                <tr>
+                                    <td>{{ offer.price }}€ - Venduto da: {{ offer.business_name }}
+                                        <form class="add_offer_to_cart" data-package_id="{{ offer.id }}">
+                                            <button type="submit" class="add_offer_to_cart_button btn bg-white btn-outline-primary">
+                                                Aggiungi al carrello
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% endifnotequal %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            {% include 'shop/includes/titleLine.html' with content_title='descrizione' %}
+            {{ product.description }}
+        </div>
+    </div>{% endcomment %}
+
+{% endblock %}
+
+{% block scripts %}
+
+    <script>
+        $(document).ready(function () {
+            {% ifnotequal offers None %}
+                $("#offers_row").css('display', 'block');
+            {% endifnotequal %}
+
+            // event that changes offers from other seller if another package is selected
+            $(".requested_package").change(function (event) {
+                console.log("click");
+                console.log($(this));
+                let checkedPackages = $("#requested_package").find(":checked");
+
+                let checkedPackagesLen = checkedPackages.length;
+                console.log(checkedPackagesLen);
+                if( checkedPackagesLen > 0){
+                    for (let i = 0; i < checkedPackagesLen; i++){
+                        let checkedPackage = checkedPackages[i];
+                        if (checkedPackage !== $(this)[0])
+                            checkedPackage.checked = false;
+                    }
+
+
+                    let checkedPackage = $(this);
+                    $("#sold_by").text(checkedPackage.data('package_seller_business_name'));
+                    $("#request_info_form").attr("action", checkedPackage.data("request_info_url"));
+                    {#$("#requested_quantity").attr('max', checkedPackage.data('package_available_quantity'))#}
+                    {#    .attr('placeholder', 'Quantità (Max: ' + checkedPackage.data('package_available_quantity') + ')');#}
+
+                    let formDataSerialized = $(this).serializeArray();
+                    let formData = {
+                        "csrfmiddlewaretoken": "{{ csrf_token }}",
+                        "type": checkedPackage.data('package_type'),
+                        "amount": checkedPackage.data('package_amount'),
+                        "dosage": checkedPackage.data('package_dosage'),
+                        "price": checkedPackage.data('package_price'),
+                        "max_offers": 4,
+                    };
+
+                    formDataSerialized.forEach(function (element){
+                        let name = element["name"];
+                        formData[name] = element["value"];
+                    })
+
+                    console.log(formData);
+                    console.log(checkedPackage.data('offers_url'));
+
+                    $.ajax({
+
+                        type: 'POST',
+
+                        url: checkedPackage.data('offers_url'),
+
+                        data: formData,
+
+                        success: function (data) {
+                            let offers = data["offers"]
+                            let offersRow = $("#offers_row");
+                            let offersBody = $("#offers_body");
+                            offersBody.html("");
+                            $("#all_offers").attr('href',this.url);
+                            if (offers !== null){
+
+
+                                if (offersRow.hasClass("visually-hidden"))
+                                    offersRow.removeClass("visually-hidden");
+
+                                let offerHtml = "<tr>\n" +
+                                    "                 <td>__PRICE__€ - Venduto da: __BUSINESS_NAME__\n" +
+                                    "                </td>\n" +
+                                    "                <td>\n" +
+                                    "                    <form class='add_offer_to_cart' data-package_id='__PACKAGE_ID__'>\n" +
+                                    "                        <button type='submit' class='add_offer_to_cart_button btn btn-primary'>\n" +
+                                    "                            Aggiungi al carrello\n" +
+                                    "                        </button>\n" +
+                                    "                    </form>\n" +
+                                    "                </td>\n" +
+
+                                    "            </tr>";
+
+                                for(let i = 0; i < offers.length; i++) {
+                                    let offer = offers[i];
+
+                                    offersBody.append(
+                                        offerHtml.replace("__PRICE__", offer["price"])
+                                            .replace("__BUSINESS_NAME__", offer["business_name"])
+                                            .replace("__PACKAGE_ID__", offer["id"])
+                                    );
+
+                                }
+                            }else{
+                                offersRow.addClass("visually-hidden");
+                            }
+
+
+                        },
+
+                        error: function (response) {
+                            console.log(response);
+
+                        }
+
+                    });
+                }
+
+            });
+
+
+            $(".add_to_cart").off().on('submit', function (event) {
+
+                event.preventDefault();
+
+                let selectedPackage = $("#requested_package").find(":checked").first();
+                if (selectedPackage.length !== 0){
+                    let formDataSerialized = $(this).serializeArray();
+                    console.log(formDataSerialized);
+                    let formData = {
+                        "csrfmiddlewaretoken": "{{ csrf_token }}",
+                        "requested_package_id": selectedPackage.data('package_id'),
+                    };
+
+                    formDataSerialized.forEach(function (element){
+                        let name = element["name"];
+                        formData[name] = element["value"];
+                    })
+
+                    console.log(formData);
+                    $.ajax({
+
+                        type: 'POST',
+
+                        url: '{% url 'cart.package.create'  %}',
+
+                        data: formData,
+
+                        success: function (data) {
+                            let cartBadge = $(".cart_badge");
+                            cartBadge.text(data["message"]);
+                            cartBadge.fadeIn(2000);
+                            cartBadge.fadeOut(3000);
+
+
+                        }.bind(this),
+
+                        error: function (response) {
+                            let responseJson = response.responseJSON;
+                            if (responseJson !== undefined) {
+                                if (responseJson.hasOwnProperty('redirect'))
+                                    window.location.href = responseJson["redirect"];
+                                else {
+                                    let cartBadge = $(".cart_badge");
+                                    cartBadge.text(responseJson["message"]);
+                                    cartBadge.fadeIn(2000);
+                                    cartBadge.fadeOut(3000);
+
+                                }
+
+                            }
+                        }
+
+                    });
+                }
+                else {
+                    let cartBadge = $(".cart_badge");
+                    cartBadge.text("Selezionare un pacchetto!");
+                    cartBadge.fadeIn(2000);
+                    cartBadge.fadeOut(3000);
+                }
+            });
+
+            $(document).on('submit', ".add_offer_to_cart", function (event) {
+
+                event.preventDefault();
+
+                let formData = {
+                    "csrfmiddlewaretoken": "{{ csrf_token }}",
+                    "requested_package_id": $(this).data("package_id"),
+                    "requested_quantity": 1,
+
+
+                };
+
+
+                console.log(formData);
+                $.ajax({
+
+                    type: 'POST',
+
+                    url: '{% url 'cart.package.create' %}',
+
+                    data: formData,
+
+                    success: function (data) {
+
+                        let cartBadge = $(".cart_badge");
+                        cartBadge.text(data["message"]);
+                        cartBadge.fadeIn(2000);
+                        cartBadge.fadeOut(3000);
+
+                    }.bind(this),
+
+                    error: function (response) {
+                        let cartBadge = $(".cart_badge");
+                        cartBadge.text(response.responseJSON["message"]);
+                        cartBadge.fadeIn(2000);
+                        cartBadge.fadeOut(3000);
+                    }
+
+                });
+
+            });
+
+
+        });
+
+    </script>
+{% endblock %}

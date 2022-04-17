@@ -1,0 +1,105 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    <div class="row">
+        {% if pharmacists is not None %}
+
+            <table class="table table-bordered">
+                <thead>
+                {% if header_row %}
+                    <tr>
+                        <th scope="col" colspan="7">Lista farmacisti</th>
+                    </tr>
+                {% endif %}
+                <tr>
+                    <th scope="col" >Id</th>
+                    <th scope="col" >Nome e cognome</th>
+                    <th scope="col" >Codice fiscale</th>
+                    <th scope="col" >Nome farmacia</th>
+                    <th scope="col" >Partita iva</th>
+                    <th scope="col" >Numero di licenza</th>
+                    <th scope="col" >Approvato</th>
+                </tr>
+                </thead>
+                <tbody >
+                {% for pharmacist in pharmacists %}
+                    <tr>
+                    <td>{{ pharmacist.id }}</td>
+                        <td>
+                            {{ pharmacist.name }} {{ pharmacist.surname }}
+                        </td>
+
+                        <td>{{ pharmacist.codice_fiscale }}</td>
+                        <td>{{ pharmacist.business_name }}</td>
+                        <td>{{ pharmacist.vat_number }}</td>
+                        <td>{{ pharmacist.license_number }}</td>
+                        <td>
+                            {% if pharmacist.approved %}
+                                SI
+                            {% else %}
+                                <form class="approve_form" data-pharmacist_id="{{ pharmacist.id }}">
+                                    <button type="submit" class=" btn btn-primary btn-rounded btn-full">
+                                        Approva
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+
+
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+        {% else %}
+            {% include 'shop/includes/messages/warning.html' with message='Nessun farmacista trovato!' %}
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+
+    <script>
+        $(".approve_form").off().on('submit', function (event) {
+
+            event.preventDefault();
+
+            let pharmacist_id = $(this).data("pharmacist_id");
+
+
+            let formDataSerialized = $(this).serializeArray();
+
+            let formData = {
+                "csrfmiddlewaretoken": $("[name='csrf_token']").attr("content"),
+                "pharmacist_id": pharmacist_id,
+            };
+
+            formDataSerialized.forEach(function (element){
+                let name = element["name"];
+
+                formData[name] = element["value"];
+            });
+
+            console.log(formData);
+            $.ajax({
+
+                type: 'POST',
+
+                url: '{% url 'administration.pharmacists.approve' %}',
+
+                data: formData,
+
+                success: function (data) {
+                    if(data.message === "saved")
+                       $(this).text("SI");
+                    else
+                        alert("Errore! Farmacista non approvato!");
+
+
+                }.bind(this),
+
+            });
+        });
+    </script>
+
+{% endblock %}

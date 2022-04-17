@@ -1,0 +1,47 @@
+{% extends 'master.html' %}
+{% load custom_filters %}
+{% block content %}
+    <strong>Nome azienda:</strong> {{ user.seller.business_name}}<br>
+    <strong>Tipo di attività:</strong> {{ seller_type }}<br>
+    {% if user.seller.is_pharmacist %}
+        <strong>Numero di licenza:</strong> {{ user.seller.license_number }}<br>
+    {% endif %}
+    <strong>Numero di partita IVA:</strong> {{ user.seller.vat_number }}<br>
+    <strong>Indirizzo aziendale:</strong> {{ address }}<br>
+    <a href="{% url 'products.sellers.index' user.seller.id  %}">
+        <strong>Visualizza tutti i prodotti di questo venditore</strong> {{ address }}<br>
+    </a>
+    {% if feedbacks %}
+        {% include 'shop/includes/titleLine.html' with content_title='Feedbacks' %}
+        {% for feedback in feedbacks %}
+            <div class="accordion" id="accordion_{{ feedback.id }}">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#collapse_{{ feedback.id }}"
+                                aria-expanded="true"
+                                aria-controls="collapse_{{ feedback.id }}">
+                            {{ feedback.order.customer.name }} {{ feedback.order.customer.surname }}
+                            {% for i in feedback.stars|__range__ %}
+                                <i class="fas fa-star"></i>
+                            {% endfor %}
+                        </button>
+                    </h2>
+                    <div id="collapse_{{ feedback.id }}" class="accordion-collapse collapse show" data-bs-parent="#accordion_{{ feedback.id }}">
+                        <div class="accordion-body">
+                            <strong>
+                                {% if feedback.comment %}
+                                    {{ feedback.comment }}
+                                {% else %}
+                                    Nessun commento
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endblock %}

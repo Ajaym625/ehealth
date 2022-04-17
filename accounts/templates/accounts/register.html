@@ -1,0 +1,77 @@
+{% extends 'master.html' %}
+{% block custom_style %}
+    <style>
+        .visually-hidden,
+        .visually-hidden-focusable:not(:focus):not(:focus-within) {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important; }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="col-7 d-flex container-fluid justify-content-center">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn mt-1 container-fluid btn-primary">
+                Iscriviti
+            </button>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        $(function(){
+
+            function showSellerFields(user_group){
+                const businessNameId = "id_business_name";
+                const vatNumberId = "id_vat_number";
+                const licenseNumberId = "id_license_number";
+                const selectedGroupLabel = user_group.children(':selected').text();
+
+                if(selectedGroupLabel !== 'Cliente'){
+                    $(`#${businessNameId}`).removeClass('visually-hidden').attr('required',true);
+                    $(`label[for='${businessNameId}']`).removeClass('visually-hidden');
+                    $(`label[for='${vatNumberId}']`).removeClass('visually-hidden');
+                    $(`#${vatNumberId}`).removeClass('visually-hidden').attr('required',true);
+
+                    if(selectedGroupLabel === 'Farmacista'){
+                        $(`label[for='${licenseNumberId}']`).removeClass('visually-hidden');
+                        $(`#${licenseNumberId}`).removeClass('visually-hidden').attr('required',true);
+                    } else{
+                        $(`label[for='${licenseNumberId}']`).addClass('visually-hidden');
+                        $(`#${licenseNumberId}`).addClass('visually-hidden').attr('required',false);
+                    }
+
+                } else{
+                    $(`label[for='${businessNameId}']`).addClass('visually-hidden');
+                    $(`#${businessNameId}`).addClass('visually-hidden').attr('required',false);
+
+                    $(`label[for='${vatNumberId}']`).addClass('visually-hidden');
+                    $(`#${vatNumberId}`).addClass('visually-hidden').attr('required',false);
+
+                    $(`label[for='${licenseNumberId}']`).addClass('visually-hidden');
+                    $(`#${licenseNumberId}`).addClass('visually-hidden').attr('required',false);
+                }
+
+            }
+
+            user_group = $("#user_group_data_floating");
+            showSellerFields(user_group);
+
+            user_group.on('change', function () {
+                console.log("ok");
+                showSellerFields($(this));
+
+            })
+        });
+    </script>
+{% endblock %}
+

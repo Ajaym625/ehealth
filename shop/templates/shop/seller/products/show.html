@@ -1,0 +1,165 @@
+{% extends 'master.html' %}
+{% load custom_filters  %}
+{% block page_title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row justify-content-between">
+
+            <div class="col-lg-4 mt-4">
+                <div id="carouselExampleSlidesOnly" class="carousel slide" data-ride="carousel">
+                    <div class="carousel-inner">
+                        {% for image in images %}
+                            <div class="carousel-item {% ifequal image.is_main True %}active{% endifequal %}">
+                                <img src="{{ MEDIA_URL }}{{ image.file}}" class="d-block w-100" alt="">
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-8 mt-4">
+                <div class="row pl-lg-3">
+                    <div class="col-12">
+                        <div class="single-product-content-description">
+                            <h4 class="product-title">{{ product.name }}</h4>
+
+                            <div class="single-info">
+                                <span class="d-block text-muted mb-2"><strong>AIC:</strong> {{ product.aic }}</span>
+                                <span class="d-block text-muted mb-2"><strong>Categoria:</strong> {{ product.category.name}}</span>
+                            </div>
+
+                            <div class="varient mt-4">
+                                <h6 class="font-weight-bold text-dark mb-3">Pacchetti</h6>
+                                <div class="row box-checkbox" id="requested_package">
+                                    {% for package in packages %}
+                                        <label tabindex="0">
+                                            <input tabindex="-1" type="checkbox" class="requested_package"
+                                                   data-is_sponsored="{% if package.sponsored_package %}1{% else %}0{% endif %}"
+                                                   data-sponsorship_url="
+                                                    {% if package.sponsored_package %}
+                                                        {% url 'seller.products.packages.sponsorships.destroy' product.id package.id %}
+                                                    {% else %}
+                                                        {% url 'seller.products.packages.sponsorships.create' product.id package.id %}
+                                                    {% endif %}"
+                                                   {% ifequal package packages.0  %}checked{% endifequal %}>
+                                            <div class="icon-box">
+                                                <div class="label">{% if package.is_sponsored %}[<b>Sponsorizzato</b>]{% endif %}
+                                                    {{ package.amount }} {{ package.type }} - {{ package.dosage }}mg<br>
+                                                    disponibilità: {{ package.available_quantity }} pezzi</div>
+                                                <span class="value">{{ package.price  }} €</span>
+                                            </div>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="product-actions my-4">
+
+                                <div class="product-buttons ml-0 ml-md-3 mt-4 mt-md-0 text-md-left text-center">
+
+                                    {% comment %}<form method="post" action="#">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary mb-1">
+                                            <i class="fas fa-edit"></i> Modifica Prodotto
+                                        </button>
+                                    </form>{% endcomment %}
+                                   {% comment %} <a href="{% url 'seller.products.packages.create' product.id %}">
+                                        <button type="submit" class="btn btn-primary mb-1">
+                                            <i class="fas fa-edit"></i> Modifica pacchetto
+                                        </button>
+                                    </a>{% endcomment %}
+                                    <a href="{% url 'seller.products.images.create' product.id %}">
+                                        <button type="submit" class="btn btn-primary mb-1">
+                                            <i class="fas fa-plus-square"></i> Aggiungi immagini
+                                        </button>
+                                    </a>
+                                    <a href="{% url 'seller.products.packages.create' product.id %}">
+                                        <button type="submit" class="btn btn-primary mb-1">
+                                            <i class="fas fa-plus-square"></i> Aggiungi pacchetto
+                                        </button>
+                                    </a>
+                                    {% if not packages.0.sponsored_package %}
+                                        <form method="post" id="sponsorship_url" action="{% url 'seller.products.packages.sponsorships.create' product.id packages.0.id  %}">
+                                            {% csrf_token %}
+                                            <button id="sponsorship_button" type="submit" class="btn btn-primary mb-1 container-fluid"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="bottom"
+                                                    title="La sponsorizzazione è soggetta ad una tassa addebitata sul prezzo di vendita finale!">
+                                                Sponsorizza pacchetto
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <form method="post" id="sponsorship_url" action="{% url 'seller.products.packages.sponsorships.destroy' product.id packages.0.id  %}">
+                                            {% csrf_token %}
+                                            <button id="sponsorship_button" type="submit" class="btn btn-primary mb-1 container-fluid">
+                                                Rimuovi sponsorizzazione pacchetto
+                                            </button>
+                                        </form>
+                                    {% endif %}
+
+                                </div>
+
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="product-full-description">
+
+                <div class="col-12">
+                    <h3 class="entry-product-section-heading">Descrizione</h3>
+                    {{ product.description }}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    {% block scripts %}
+
+        <script>
+
+            $(document).ready(function () {
+                $(".requested_package").change(function (event) {
+
+                    let checkedPackages = $("#requested_package").find(":checked");
+                    let checkedPackagesLen = checkedPackages.length;
+
+                    for (let i = 0; i < checkedPackagesLen; i++) {
+                        let checkedPackage = checkedPackages[i];
+                        if (checkedPackage !== $(this)[0])
+                            checkedPackage.checked = false;
+                        else{
+                           let sponsorshipUrl = $(checkedPackage).data("sponsorship_url");
+                           let isSponsored = parseInt( $(checkedPackage).data("is_sponsored"));
+                           let sponsorshipForm = $("#sponsorship_url");
+                           let sponsorshipButton = $("#sponsorship_button");
+                           if (isSponsored){
+                               sponsorshipButton.text("Rimuovi sponsorizzazione pacchetto");
+                           } else{
+                               sponsorshipButton.text("Sponsorizza pacchetto");
+                           }
+                           sponsorshipForm.attr("action", sponsorshipUrl);
+
+                        }
+                    }
+
+
+
+                });
+            });
+
+
+
+        </script>
+    {% endblock %}
+
+
+{% endblock %}

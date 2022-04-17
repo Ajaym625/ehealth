@@ -1,0 +1,31 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    {% include 'shop/includes/titleLine.html' with content_title='Aggiungi prodotto' %}
+    <div class="col-7 d-flex container-fluid justify-content-center">
+        <form method="post" id="add_product_form" action="{% url 'seller.products.create' %}" class="">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn mb-3 container-fluid btn-primary">
+                Aggiungi prodotto
+            </button>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+
+    <script>
+
+        {% if not user.seller.is_pharmacist %}
+            $("#id_needs_prescription").parent().css('visibility', 'hidden');
+        {% endif %}
+
+        {% if 'product_to_create_aic' in request.session %}
+            $("input#id_aic").val('{{ request.session.product_to_create_aic }}')
+        {% endif %}
+    </script>
+
+{% endblock %}
+
+

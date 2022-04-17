@@ -1,0 +1,373 @@
+{% extends 'master.html' %}
+{% load static %}
+{% block custom_style %}
+    <link type="text/css"  href="{% static 'css/chat.css' %}" rel="stylesheet">
+{% endblock %}
+{% block content %}
+    <div class="messaging">
+        <div class="inbox_msg">
+            <div class="inbox_people">
+                <div class="headind_srch">
+                    <div class="recent_heading">
+                        <h4>Tutte le chat</h4>
+
+                    </div>
+
+                </div>
+                <div class="inbox_chat">
+                    {% for chat in chats %}
+                        {% include 'chat/includes/preview.html' with chat=chat %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="mesgs">
+                {% for chat in chats %}
+                    {% ifequal chat chats.first %}
+                        {% include 'chat/includes/messages.html' with chat=chat display='block' %}
+                    {% else %}
+                        {% include 'chat/includes/messages.html' with chat=chat display='none' %}
+                    {% endifequal %}
+                {% endfor %}
+                <div class="type_msg">
+                    <div class="input_msg_write">
+                        <input type="text" class="write_msg" placeholder="Inserisci un messaggio" />
+                        <button class="msg_send_btn" type="button"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        $(document).ready(function(){
+            var chatLists = $(".chat_list");
+            chatLists.first().addClass("active_chat");
+            let chat_prefix = "preview_chat_";
+            let messages_prefix = "messages_chat_";
+
+            chatLists.on('click', function () {
+
+                console.log("click");
+                let chatListId = $(this).attr('id');
+
+                let chatId = chatListId.replace(chat_prefix, "");
+                let messagesChatId = messages_prefix + chatId;
+
+                $(".msg_history").css('display', 'none');
+                $("#" + messagesChatId).css('display', 'block');
+
+                chatLists.removeClass("active_chat");
+                $(this).addClass("active_chat");
+                $(this).removeClass("bg-warning");
+            });
+
+
+            function switchChat(chatLists) {
+                console.log("click");
+                let chatListId = $(this).attr('id');
+
+                let chatId = chatListId.replace(chat_prefix, "");
+                let messagesChatId = messages_prefix + chatId;
+
+                $(".msg_history").css('display', 'none');
+                $("#" + messagesChatId).css('display', 'block');
+
+                chatLists.removeClass("active_chat");
+                $(this).addClass("active_chat");
+                $(this).removeClass("bg-warning");
+            }
+
+            let chats = [];
+
+            var receivedMessage = '<div class="incoming_msg">\n' +
+                '    <div class="incoming_msg_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"></div>\n' +
+                '    <div class="received_msg">\n' +
+                '        <div class="received_withd_msg">\n' +
+                '            <p>__MESSAGE_TEXT__</p>\n' +
+                '{#            <span class="time_date"> 11:01 AM    |    June 9</span></div>#}\n' +
+                '            <span class="time_date">__MESSAGE_DATE__</span></div>\n' +
+                '    </div>\n' +
+                '</div>';
+
+            var sentMessage = '<div class="outgoing_msg">\n' +
+                '    <div class="sent_msg">\n' +
+                '        <p>__MESSAGE_TEXT__</p>\n' +
+                '        <span class="time_date">__MESSAGE_DATE__</span> </div>\n' +
+                '</div>';
+
+            class Chat{
+                constructor(chatId ){
+                    this.chatId = chatId;
+                    this.messagesChatId = messages_prefix + this.chatId;
+                    this.htmlChatId = chat_prefix + this.chatId;
+                    console.log(chatId);
+                    this.socket = new WebSocket(
+                        'ws://'
+                        + window.location.host
+                        + '/ws/chat/'
+                        + this.chatId
+                        + '/'
+                    );
+
+                    this.socket.onmessage = function(e) {
+                        const data = JSON.parse(e.data);
+
+                        let htmlMessage = "";
+
+                        if(data.sender_id == {{ request.user.id }}){
+                            htmlMessage = sentMessage.replace("__MESSAGE_TEXT__", data.message)
+                                .replace('__MESSAGE_DATE__', data.date);
+
+
+                        } else {
+                            htmlMessage = receivedMessage.replace("__MESSAGE_TEXT__", data.message)
+                                .replace('__MESSAGE_DATE__', data.date);
+                            $("#" + this.htmlChatId).addClass("bg-warning")
+                        }
+
+                        $("#" + this.htmlChatId + "> .chat_people > .chat_ib > .last_message").text(data.message);
+                        console.log("#" + this.htmlChatId + "> .last-message");
+
+                        $("#" + this.messagesChatId + "> .messages").append(htmlMessage)
+                            .animate({ scrollTop: 4000 }, 400);
+
+                        {#document.querySelector('#chat-log').value += (data.message + '\n');#}
+                    }.bind(this);
+
+                    this.socket.onclose = function(e) {
+                        console.error('Chat socket closed unexpectedly');
+                    };
+
+                }
+            }
+
+
+            for (let i = 0; i < chatLists.length; i++){
+
+                let chatList = chatLists.eq(i);
+                let chatHtmlId = chatList.attr('id');
+                let chatId = chatHtmlId.replace(chat_prefix, "");
+                let chat = new Chat(chatId);
+                chats[chatHtmlId] = chat;
+            }
+
+
+
+
+            $(".write_msg").keyup(function (event) {
+                if (event.keyCode === 13) {  // enter, return
+                    $(".msg_send_btn").click();
+                }
+            });
+
+            $(".up").click(function () {
+
+                let chat = $(this).parent().parent();
+                if (!chat.hasClass("ended")){
+                    let chatId = parseInt( chat.attr('id').replace(messages_prefix, ''));
+                    endChat($(this),chat, chatId, 1);
+
+                }
+            });
+
+            $(".down").click(function () {
+
+                let chat = $(this).parent().parent();
+                if (!chat.hasClass("ended")){
+                    let chatId = parseInt( chat.attr('id').replace(messages_prefix, ''));
+                    endChat($(this),chat, chatId, -1);
+
+                }
+            });
+
+            $(".msg_send_btn").off().on('click', function (event) {
+
+                const message = $(".write_msg").val();
+                let activeChatPreview = $(".chat_list.active_chat").first();
+                let activeChatPreviewHtmlId = activeChatPreview.attr('id');
+                let id = "#" + messages_prefix + activeChatPreviewHtmlId.replace(chat_prefix, "");
+                console.log($(id).hasClass("ended"));
+                console.log(message);
+                if( message !== "" && !$(id).hasClass("ended")) {
+
+                    let chat = chats[activeChatPreviewHtmlId];
+                    chat.socket.send(JSON.stringify({
+                        'message': message
+                    }));
+
+
+                }
+                $(".write_msg").val("");
+            });
+
+
+
+            function endChat(element, chat, chat_id, useful){
+                let formData = {
+                    "csrfmiddlewaretoken": "{{ csrf_token }}",
+                    "useful": useful
+                };
+
+                console.log(formData);
+
+                $.ajax({
+
+                    type: 'POST',
+
+                    url: '{% url 'chats.end' 0 %}'.replace('0', chat_id),
+
+                    data: formData,
+
+                    success: function (data) {
+                        if (useful == 1) {
+                            element.addClass("text-primary");
+
+                        }
+                        else if(useful == -1){
+                            element.addClass("text-danger");
+                        }
+                        chat.addClass("ended");
+                        chat.html('<p class="text-danger">[Chat conclusa]</p>' + chat.html());
+                    }.bind(element, chat, useful),
+
+                    error: function (response){
+
+                    }
+                });
+            }
+            console.log(getAllExistingChatIds(chats));
+            {% if request.user.seller.is_pharmacist %}
+
+                function getAllExistingChatIds(chats) {
+                    let chatIds = [];
+                    for (const [key, value] of Object.entries(chats)) {
+                        chatIds.push(parseInt(value.chatId));
+                    }
+                    return chatIds;
+                }
+
+                function checkNewChats(chats){
+                    console.log(getAllExistingChatIds(chats));
+                    $.ajax({
+
+                        type: 'POST',
+
+                        url: '{% url 'chats.check' %}',
+
+                        data: {
+                            "csrfmiddlewaretoken": "{{ csrf_token }}",
+                            "chat_ids": getAllExistingChatIds(chats),
+
+                        },
+
+                        success: function (data) {
+                            let newChats = data["new_chats"];
+                            console.log(typeof newChats);
+                            console.log(newChats)
+                            let newChatsLen = newChats.length;
+                            if (newChatsLen) {
+                                console.log();
+                                let preview = '<div id="preview_chat___CHAT_ID__" class="chat_list" style="cursor: pointer">\n' +
+                                    '    <div class="chat_people">\n' +
+                                    '        <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>\n' +
+                                    '        <div class="chat_ib">\n' +
+                                    '            <h5>__SENDER_USERNAME__\n'+
+                                    '                [__PRODUCT_NAME__ - __PACKAGE__]<span class="chat_date">__LAST_MESSAGE_DATE__</span></h5>\n' +
+                                    '            <p class="last_message">__LAST_MESSAGE__</p>\n' +
+                                    '        <h6>coupon: __COUPON_CODE__</h6>\n' +
+                                    '\n' +
+                                    '        </div>\n' +
+                                    '\n' +
+                                    '    </div>\n' +
+                                    '</div>\n';
+
+                                let chatBox = '<div id="messages_chat___CHAT_ID__"  class="msg_history" style="display:none">\n' +
+                                    '    <div class="useful ">La chat è stata utile?\n' +
+                                    '            <i class="up fas fa-thumbs-up" style="cursor: pointer"></i> <i class="down fas fa-thumbs-down" style="cursor: pointer"></i>\n' +
+                                    '    </div>\n' +
+                                    '    <div class="messages">\n' +
+                                    '    __MESSAGES__\n' +
+                                    '    </div>\n' +
+                                    '</div>';
+
+                                let htmlMessage = '<div class="incoming_msg">\n' +
+                                    '<div class="received_msg">\n' +
+                                    '<div class="received_withd_msg">\n' +
+                                    '<p>__TEXT__</p>\n' +
+                                    '<span class="time_date">__DATE__</span>\n' +
+                                    '</div>\n' +
+                                    '</div>\n' +
+                                    '</div>'
+
+                                for (let i = 0; i < newChatsLen; i++) {
+                                    let newChatJson = newChats[i];
+                                    let chat = new Chat(newChatJson.id);
+                                    chats[chat.htmlChatId] = chat;
+
+                                    let messages = newChatJson["messages"];
+
+                                    let htmlMessages = "";
+                                    let messagesLen = messages.length;
+
+                                    if (messagesLen){
+                                        let chat_preview = preview.replace("__CHAT_ID__", newChatJson["id"])
+                                            .replace("__SENDER_USERNAME__" , newChatJson["sender_username"])
+                                            .replace("__PRODUCT_NAME__", newChatJson["product_name"])
+                                            .replace("__PACKAGE__", newChatJson["package"])
+                                            .replace("__COUPON_CODE__", newChatJson["coupon_code"]);
+
+                                        console.log(messages);
+
+                                        let lastMessage = messages[0];
+                                        chat_preview = chat_preview.replace("__LAST_MESSAGE_DATE__", lastMessage["date"])
+                                            .replace("__LAST_MESSAGE__", lastMessage["text"]);
+
+                                        chatBox = chatBox.replace("__CHAT_ID__", newChatJson["id"]);
+                                        for (let i = 0; i < messagesLen; i++ ) {
+                                            let chatMessage = messages[i];
+                                            htmlMessages += htmlMessage.replace("__TEXT__", chatMessage["text"])
+                                                .replace("__DATE__", chatMessage["date"]);
+                                        }
+                                        chatBox = chatBox.replace("__MESSAGES__", htmlMessages);
+                                        $(".inbox_chat").prepend(chat_preview);
+                                        $(".mesgs").prepend(chatBox);
+                                        chatLists = $(".chat_list");
+                                        chatLists.off().on('click', function () {
+
+                                            console.log("click");
+                                            let chatListId = $(this).attr('id');
+
+                                            let chatId = chatListId.replace(chat_prefix, "");
+                                            let messagesChatId = messages_prefix + chatId;
+
+                                            $(".msg_history").css('display', 'none');
+                                            $("#" + messagesChatId).css('display', 'block');
+
+                                            chatLists.removeClass("active_chat");
+                                            $(this).addClass("active_chat");
+                                            $(this).removeClass("bg-warning");
+                                        });
+
+                                    }
+
+
+
+
+                                }
+                            }
+                        }.bind(chats),
+
+                        error: function (response){
+
+                        }
+                    });
+                }
+
+                setInterval(() =>{checkNewChats(chats)}, 5000);
+            {% endif %}
+        });
+    </script>
+{% endblock %}

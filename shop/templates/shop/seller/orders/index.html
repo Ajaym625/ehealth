@@ -1,0 +1,11 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    <div class="row">
+        {% if orders is not None %}
+             {% include 'shop/seller/orders/includes/indexOrdersTable.html' %}
+        {% else %}
+            {% include 'shop/includes/messages/warning.html' with message='Nessun Prodotto ordinato!' %}
+        {% endif %}
+    </div>
+{% endblock %}

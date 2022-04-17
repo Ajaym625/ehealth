@@ -1,0 +1,63 @@
+{% load static %}
+<footer class="site-footer footer-padding-lg bg-light mt-8">
+        <div class="container-fluid theme-container">
+            <div class="upper-footer">
+                <div class="row justify-content-around">
+                    <div class="col-lg-4 col-md-3 col-12">
+                        <div class="footer-brand">
+                            <img src="{% static 'assets/img/logos/logobig.png' %}" alt="">
+                        </div>
+
+                    </div>
+
+                    <div class="col-lg-2 col-md-3 col-12">
+                        <div class="widget">
+                            <div class="widget-title">
+                                <h3>Aiuto</h3>
+                            </div>
+                            <ul>
+                                <li>
+                                    <a href="#">FAQ</a>
+                                </li>
+                                <li>
+                                    <a href="#">Su di noi</a>
+                                </li>
+                                <li>
+                                    <a href="#">Contattaci</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-3 col-12">
+                        <div class="widget">
+                            <div class="widget-title">
+                                <h3>Policy</h3>
+                            </div>
+                            <ul>
+                                <li>
+                                    <a href="#">Privacy policy</a>
+                                </li>
+                                <li>
+                                    <a href="#">Termini e condizioni</a>
+                                </li>
+
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="lower-footer">
+                <div class="row">
+                    <div class="col-md-6 text-lg-left">
+                        <p class="mb-4 mb-md-0 text-muted">Copyright © 2021 E-Health | All rights reserved.</p>
+                    </div>
+                    {% comment %}<div class="col-md-6">
+                        <div class="footer-card text-lg-right">
+                            <img class="img-fluid mx-2" src="assets/img/payment-methods.png" alt="Icon">
+                        </div>
+                    </div>{% endcomment %}
+                </div>
+            </div>
+        </div>
+    </footer>
